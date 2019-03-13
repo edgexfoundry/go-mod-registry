@@ -188,9 +188,15 @@ func (client *consulClient) GetConfiguration(configStruct interface{}) (interfac
 	decoder.ErrCh = errorChannel
 	decoder.UpdateCh = updateChannel
 
-	defer decoder.Close()
-	defer close(updateChannel)
-	defer close(errorChannel)
+	defer func() {
+		decoder.Close()
+		close(updateChannel)
+		// This is hack to avoid panic when consul is stopped since decoder is incorrectly still running
+		// and will send an error on the channel
+		// TODO: uncomment close and remove comments when decoder is fix to stop properly
+		//close(errorChannel)
+	}()
+
 	go decoder.Run()
 
 	select {
@@ -220,8 +226,6 @@ func (client *consulClient) WatchForChanges(updateChannel chan<- interface{}, er
 	decoder.Prefix = client.configBasePath + watchKey
 	decoder.ErrCh = errorChannel
 	decoder.UpdateCh = updateChannel
-
-	defer decoder.Close()
 
 	go decoder.Run()
 }
