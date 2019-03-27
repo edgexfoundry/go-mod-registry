@@ -14,15 +14,15 @@
 // limitations under the License.
 //
 
-package factory
+package registry
 
 import (
 	"fmt"
-	"github.com/edgexfoundry/go-mod-registry"
 	"github.com/edgexfoundry/go-mod-registry/internal/pkg/consul"
+	"github.com/edgexfoundry/go-mod-registry/pkg/types"
 )
 
-func NewRegistryClient(registryConfig registry.Config) (registry.Client, error) {
+func NewRegistryClient(registryConfig types.Config) (Client, error) {
 
 	if registryConfig.Host == "" || registryConfig.Port == 0 {
 		return nil, fmt.Errorf("unable to create ConsulClient: registry host and/or port or serviceKey not set")

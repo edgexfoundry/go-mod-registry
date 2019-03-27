@@ -17,7 +17,6 @@
 package consul
 
 import (
-	"github.com/edgexfoundry/go-mod-registry"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -31,6 +30,8 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/edgexfoundry/go-mod-registry/pkg/types"
 )
 
 const (
@@ -55,7 +56,7 @@ type LoggingInfo struct {
 
 type MyConfig struct {
 	Logging  LoggingInfo
-	Service  registry.ServiceEndpoint
+	Service  types.ServiceEndpoint
 	Port     int
 	Host     string
 	LogLevel string
@@ -116,7 +117,7 @@ func TestHasConfigurationTrue(t *testing.T) {
 	}
 
 	// Now push a value so the configuration will exist
-	client.PutConfigurationValue("Dummy", []byte("Value"))
+	_  = client.PutConfigurationValue("Dummy", []byte("Value"))
 
 	actual, err := client.HasConfiguration()
 	if !assert.NoError(t, err) {
@@ -164,7 +165,7 @@ func TestRegisterWithPingCallback(t *testing.T) {
 				receivedPing = true
 
 				writer.Header().Set("Content-Type", "text/plain")
-				writer.Write([]byte("pong"))
+				_,_  = writer.Write([]byte("pong"))
 
 				doneChan <- true
 			}
@@ -178,13 +179,13 @@ func TestRegisterWithPingCallback(t *testing.T) {
 
 	client := makeConsulClient(t, serverPort, true)
 	// Make sure service is not already registered.
-	client.consulClient.Agent().ServiceDeregister(client.serviceKey)
-	client.consulClient.Agent().CheckDeregister(client.serviceKey)
+	_  = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
+	_  = client.consulClient.Agent().CheckDeregister(client.serviceKey)
 
 	// Try to clean-up after test
 	defer func(client *consulClient) {
-		client.consulClient.Agent().ServiceDeregister(client.serviceKey)
-		client.consulClient.Agent().CheckDeregister(client.serviceKey)
+		_  = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
+		_  = client.consulClient.Agent().CheckDeregister(client.serviceKey)
 	}(client)
 
 	// Register the service endpoint and health check callback
@@ -203,8 +204,8 @@ func TestRegisterWithPingCallback(t *testing.T) {
 }
 
 func TestGetServiceEndpoint(t *testing.T) {
-	expectedNotFoundEndpoint := registry.ServiceEndpoint{}
-	expectedFoundEndpoint := registry.ServiceEndpoint{
+	expectedNotFoundEndpoint := types.ServiceEndpoint{}
+	expectedFoundEndpoint := types.ServiceEndpoint{
 		ServiceId: serviceName,
 		Host:      serviceHost,
 		Port:      defaultServicePort,
@@ -212,13 +213,13 @@ func TestGetServiceEndpoint(t *testing.T) {
 
 	client := makeConsulClient(t, defaultServicePort, true)
 	// Make sure service is not already registered.
-	client.consulClient.Agent().ServiceDeregister(client.serviceKey)
-	client.consulClient.Agent().CheckDeregister(client.serviceKey)
+	_  = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
+	_  = client.consulClient.Agent().CheckDeregister(client.serviceKey)
 
 	// Try to clean-up after test
 	defer func(client *consulClient) {
-		client.consulClient.Agent().ServiceDeregister(client.serviceKey)
-		client.consulClient.Agent().CheckDeregister(client.serviceKey)
+		_  = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
+		_  = client.consulClient.Agent().CheckDeregister(client.serviceKey)
 	}(client)
 
 	// Test for endpoint not found
@@ -251,8 +252,8 @@ func TestIsServiceAvailableNotRegistered(t *testing.T) {
 	client := makeConsulClient(t, defaultServicePort, true)
 
 	// Make sure service is not already registered.
-	client.consulClient.Agent().ServiceDeregister(client.serviceKey)
-	client.consulClient.Agent().CheckDeregister(client.serviceKey)
+	_  = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
+	_  = client.consulClient.Agent().CheckDeregister(client.serviceKey)
 
 	actual := client.IsServiceAvailable(client.serviceKey)
 	if !assert.Error(t, actual, "expected error") {
@@ -267,13 +268,13 @@ func TestIsServiceAvailableNotHealthy(t *testing.T) {
 	client := makeConsulClient(t, defaultServicePort, true)
 
 	// Make sure service is not already registered.
-	client.consulClient.Agent().ServiceDeregister(client.serviceKey)
-	client.consulClient.Agent().CheckDeregister(client.serviceKey)
+	_  = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
+	_  = client.consulClient.Agent().CheckDeregister(client.serviceKey)
 
 	// Try to clean-up after test
 	defer func(client *consulClient) {
-		client.consulClient.Agent().ServiceDeregister(client.serviceKey)
-		client.consulClient.Agent().CheckDeregister(client.serviceKey)
+		_  = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
+		_  = client.consulClient.Agent().CheckDeregister(client.serviceKey)
 	}(client)
 
 	// Register the service endpoint, without test service to respond to health check
@@ -303,7 +304,7 @@ func TestIsServiceAvailableHealthy(t *testing.T) {
 			switch request.Method {
 			case "GET":
 				writer.Header().Set("Content-Type", "text/plain")
-				writer.Write([]byte("pong"))
+				_,_  = writer.Write([]byte("pong"))
 
 				doneChan <- true
 			}
@@ -317,13 +318,13 @@ func TestIsServiceAvailableHealthy(t *testing.T) {
 
 	client := makeConsulClient(t, serverPort, true)
 	// Make sure service is not already registered.
-	client.consulClient.Agent().ServiceDeregister(client.serviceKey)
-	client.consulClient.Agent().CheckDeregister(client.serviceKey)
+	_  = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
+	_  = client.consulClient.Agent().CheckDeregister(client.serviceKey)
 
 	// Try to clean-up after test
 	defer func(client *consulClient) {
-		client.consulClient.Agent().ServiceDeregister(client.serviceKey)
-		client.consulClient.Agent().CheckDeregister(client.serviceKey)
+		_  = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
+		_  = client.consulClient.Agent().CheckDeregister(client.serviceKey)
 	}(client)
 
 	// Register the service endpoint
@@ -366,7 +367,7 @@ func TestConfigurationValueExists(t *testing.T) {
 	if !assert.NoError(t, err) {
 		t.Fatal()
 	}
-	if !assert.Equal(t, expected, actual) {
+	if !assert.False(t, actual) {
 		t.Fatal()
 	}
 
@@ -423,7 +424,7 @@ func TestPutConfigurationValue(t *testing.T) {
 	client := makeConsulClient(t, defaultServicePort, true)
 
 	//clean up the the key, if it exists
-	client.consulClient.KV().Delete(expectedFullKey, nil)
+	_,_  = client.consulClient.KV().Delete(expectedFullKey, nil)
 
 	err := client.PutConfigurationValue(key, expected)
 	assert.NoError(t, err)
@@ -448,7 +449,7 @@ func TestGetConfiguration(t *testing.T) {
 			EnableRemote: true,
 			File:         "NONE",
 		},
-		Service: registry.ServiceEndpoint{
+		Service: types.ServiceEndpoint{
 			ServiceId: "Dummy",
 			Host:      "10.6.7.8",
 			Port:      8080,
@@ -460,14 +461,14 @@ func TestGetConfiguration(t *testing.T) {
 
 	client := makeConsulClient(t, defaultServicePort, true)
 
-	client.PutConfigurationValue("Logging/EnableRemote", []byte(strconv.FormatBool(expected.Logging.EnableRemote)))
-	client.PutConfigurationValue("Logging/File", []byte(expected.Logging.File))
-	client.PutConfigurationValue("Service/ServiceId", []byte(expected.Service.ServiceId))
-	client.PutConfigurationValue("Service/Host", []byte(expected.Service.Host))
-	client.PutConfigurationValue("Service/Port", []byte(strconv.Itoa(expected.Service.Port)))
-	client.PutConfigurationValue("Port", []byte(strconv.Itoa(expected.Port)))
-	client.PutConfigurationValue("Host", []byte(expected.Host))
-	client.PutConfigurationValue("LogLevel", []byte(expected.LogLevel))
+	_  = client.PutConfigurationValue("Logging/EnableRemote", []byte(strconv.FormatBool(expected.Logging.EnableRemote)))
+	_  = client.PutConfigurationValue("Logging/File", []byte(expected.Logging.File))
+	_  = client.PutConfigurationValue("Service/ServiceId", []byte(expected.Service.ServiceId))
+	_  = client.PutConfigurationValue("Service/Host", []byte(expected.Service.Host))
+	_  = client.PutConfigurationValue("Service/Port", []byte(strconv.Itoa(expected.Service.Port)))
+	_  = client.PutConfigurationValue("Port", []byte(strconv.Itoa(expected.Port)))
+	_  = client.PutConfigurationValue("Host", []byte(expected.Host))
+	_  = client.PutConfigurationValue("LogLevel", []byte(expected.LogLevel))
 
 	result, err := client.GetConfiguration(&MyConfig{})
 
@@ -497,7 +498,7 @@ func TestPutConfiguration(t *testing.T) {
 			EnableRemote: true,
 			File:         "NONE",
 		},
-		Service: registry.ServiceEndpoint{
+		Service: types.ServiceEndpoint{
 			ServiceId: "Dummy",
 			Host:      "10.6.7.8",
 			Port:      8080,
@@ -511,11 +512,11 @@ func TestPutConfiguration(t *testing.T) {
 	client := makeConsulClient(t, defaultServicePort, true)
 
 	// Make sure the tree of values doesn't exist.
-	client.consulClient.KV().DeleteTree(consulBasePath, nil)
+	_ , _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
 
 	defer func() {
 		// Clean up
-		client.consulClient.KV().DeleteTree(consulBasePath, nil)
+		_ , _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
 	}()
 
 	err := client.PutConfiguration(expected, true)
@@ -538,7 +539,7 @@ func TestPutConfiguration(t *testing.T) {
 	assert.True(t,configValueSet("LogLevel", client))
 }
 
-func configValueSet(key string, client registry.Client) bool {
+func configValueSet(key string, client *consulClient) bool {
 	exists, _ := client.ConfigurationValueExists(key)
 	return exists
 }
@@ -547,11 +548,11 @@ func TestPutConfigurationTomlNoPreviousValues(t *testing.T) {
 	client := makeConsulClient(t, defaultServicePort, true)
 
 	// Make sure the tree of values doesn't exist.
-	client.consulClient.KV().DeleteTree(consulBasePath, nil)
+	_ , _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
 
 	defer func() {
 		// Clean up
-		client.consulClient.KV().DeleteTree(consulBasePath, nil)
+		_ , _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
 	}()
 
 	configMap := createKeyValueMap()
@@ -582,11 +583,11 @@ func TestPutConfigurationTomlWithoutOverWrite(t *testing.T) {
 	client := makeConsulClient(t, defaultServicePort, true)
 
 	// Make sure the tree of values doesn't exist.
-	client.consulClient.KV().DeleteTree(consulBasePath, nil)
+	_ , _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
 
 	defer func() {
 		// Clean up
-		client.consulClient.KV().DeleteTree(consulBasePath, nil)
+		_ , _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
 	}()
 
 	configMap := createKeyValueMap()
@@ -629,10 +630,10 @@ func TestPutConfigurationTomlOverWrite(t *testing.T) {
 	client := makeConsulClient(t, defaultServicePort, true)
 
 	// Make sure the tree of values doesn't exist.
-	client.consulClient.KV().DeleteTree(consulBasePath, nil)
+	_, _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
 	// Clean up after unit test
 	defer func() {
-		client.consulClient.KV().DeleteTree(consulBasePath, nil)
+		_, _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
 	}()
 
 	configMap := createKeyValueMap()
@@ -676,7 +677,7 @@ func TestWatchForChanges(t *testing.T) {
 			EnableRemote: true,
 			File:         "NONE",
 		},
-		Service: registry.ServiceEndpoint{
+		Service: types.ServiceEndpoint{
 			ServiceId: "Dummy",
 			Host:      "10.6.7.8",
 			Port:      8080,
@@ -691,20 +692,20 @@ func TestWatchForChanges(t *testing.T) {
 	client := makeConsulClient(t, defaultServicePort, false)
 
 	// Make sure the tree of values doesn't exist.
-	client.consulClient.KV().DeleteTree(consulBasePath, nil)
+	_, _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
 	// Clean up after unit test
 	defer func() {
-		client.consulClient.KV().DeleteTree(consulBasePath, nil)
+		_, _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
 	}()
 
-	client.PutConfigurationValue("Logging/EnableRemote", []byte(strconv.FormatBool(expectedConfig.Logging.EnableRemote)))
-	client.PutConfigurationValue("Logging/File", []byte(expectedConfig.Logging.File))
-	client.PutConfigurationValue("Service/ServiceId", []byte(expectedConfig.Service.ServiceId))
-	client.PutConfigurationValue("Service/Host", []byte(expectedConfig.Service.Host))
-	client.PutConfigurationValue("Service/Port", []byte(strconv.Itoa(expectedConfig.Service.Port)))
-	client.PutConfigurationValue("Port", []byte(strconv.Itoa(expectedConfig.Port)))
-	client.PutConfigurationValue("Host", []byte(expectedConfig.Host))
-	client.PutConfigurationValue("LogLevel", []byte(expectedConfig.LogLevel))
+	_ = client.PutConfigurationValue("Logging/EnableRemote", []byte(strconv.FormatBool(expectedConfig.Logging.EnableRemote)))
+	_ = client.PutConfigurationValue("Logging/File", []byte(expectedConfig.Logging.File))
+	_ = client.PutConfigurationValue("Service/ServiceId", []byte(expectedConfig.Service.ServiceId))
+	_ = client.PutConfigurationValue("Service/Host", []byte(expectedConfig.Service.Host))
+	_ = client.PutConfigurationValue("Service/Port", []byte(strconv.Itoa(expectedConfig.Service.Port)))
+	_ = client.PutConfigurationValue("Port", []byte(strconv.Itoa(expectedConfig.Port)))
+	_ = client.PutConfigurationValue("Host", []byte(expectedConfig.Host))
+	_ = client.PutConfigurationValue("LogLevel", []byte(expectedConfig.LogLevel))
 
 	updateChannel := make(chan interface{})
 	errorChannel := make(chan error)
@@ -728,7 +729,7 @@ func TestWatchForChanges(t *testing.T) {
 				}
 
 				// Make a change to logging
-				client.PutConfigurationValue("Logging/File", []byte(expectedChange))
+				_ = client.PutConfigurationValue("Logging/File", []byte(expectedChange))
 
 				pass--
 				continue
@@ -745,7 +746,7 @@ func TestWatchForChanges(t *testing.T) {
 }
 
 func makeConsulClient(t *testing.T, servicePort int, setServiceInfo bool) *consulClient {
-	registryConfig := registry.Config{
+	registryConfig := types.Config{
 		Host:          testHost,
 		Port:          port,
 		Stem:          "edgex/core/1.0/",

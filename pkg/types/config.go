@@ -14,54 +14,9 @@
 // limitations under the License.
 //
 
-package registry
+package types
 
-import (
-	"fmt"
-	"github.com/pelletier/go-toml"
-)
-
-type Client interface {
-	// Registers the current service with Registry for discover and health check
-	Register() error
-
-	// Checks to see if the Registry contains the service's configuration.
-	HasConfiguration() (bool, error)
-
-	// Puts a full toml configuration into the Registry
-	PutConfigurationToml(configuration *toml.Tree, overwrite bool) error
-
-	// Puts a full configuration struct into the Registry
-	PutConfiguration(configStruct interface{}, overwrite bool) error
-
-	// Gets the full configuration from Consul into the target configuration struct.
-	// Passed in struct is only a reference for Registry. Empty struct is fine
-	// Returns the configuration in the target struct as interface{}, which caller must cast
-	GetConfiguration(configStruct interface{}) (interface{}, error)
-
-	// Sets up a Consul watch for the target key and send back updates on the update channel.
-	// Passed in struct is only a reference for Registry, empty struct is ok
-	// Sends the configuration in the target struct as interface{} on updateChannel, which caller must cast
-	WatchForChanges(updateChannel chan<- interface{}, errorChannel chan<- error, configuration interface{}, waitKey string)
-
-	// Simply checks if Registry is up and running at the configured URL
-	IsAlive() bool
-
-	// Checks if a configuration value exists in the Registry
-	ConfigurationValueExists(name string) (bool, error)
-
-	// Gets a specific configuration value from the Registry
-	GetConfigurationValue(name string) ([]byte, error)
-
-	// Puts a specific configuration value into the Registry
-	PutConfigurationValue(name string, value []byte) error
-
-	// Gets the service endpoint information for the target ID from the Registry
-	GetServiceEndpoint(serviceId string) (ServiceEndpoint, error)
-
-	// Checks with the Registry if the target service is available, i.e. registered and healthy
-	IsServiceAvailable(serviceId string) (error)
-}
+import "fmt"
 
 // Config defines the information need to connect to the registry service and optionally register the service
 // for discovery and health checks
@@ -88,13 +43,6 @@ type Config struct {
 	CheckRoute string
 	// Health check callback interval. May be left empty if not using registration
 	CheckInterval string
-}
-
-// ServiceEndpoint defines the service information returned by GetServiceEndpoint() need to connect to the target service
-type ServiceEndpoint struct {
-	ServiceId string
-	Host      string
-	Port      int
 }
 
 //

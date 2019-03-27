@@ -14,15 +14,16 @@
 // limitations under the License.
 //
 
-package factory
+package registry
 
 import (
-	"github.com/edgexfoundry/go-mod-registry"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/edgexfoundry/go-mod-registry/pkg/types"
+	"github.com/stretchr/testify/assert"
 )
 
-var registryConfig = registry.Config{
+var registryConfig = types.Config{
 	Host:        "localhost",
 	Port:        8500,
 	Stem:        "config",

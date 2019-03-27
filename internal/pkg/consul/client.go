@@ -18,7 +18,7 @@ package consul
 
 import (
 	"fmt"
-	"github.com/edgexfoundry/go-mod-registry"
+	"github.com/edgexfoundry/go-mod-registry/pkg/types"
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/mitchellh/consulstructure"
 	"github.com/pelletier/go-toml"
@@ -46,7 +46,7 @@ type consulClient struct {
 }
 
 // Create new Consul Client. Service details are optional, not needed just for configuration, but required if registering
-func NewConsulClient(registryConfig registry.Config,) (*consulClient, error) {
+func NewConsulClient(registryConfig types.Config,) (*consulClient, error) {
 
 	client := consulClient{
 		serviceKey:      registryConfig.ServiceKey,
@@ -280,13 +280,13 @@ func (client *consulClient) PutConfigurationValue(name string, value []byte) err
 }
 
 // Gets the service endpoint information for the target ID from Consul
-func (client *consulClient) GetServiceEndpoint(serviceID string) (registry.ServiceEndpoint, error) {
+func (client *consulClient) GetServiceEndpoint(serviceID string) (types.ServiceEndpoint, error) {
 	services, err := client.consulClient.Agent().Services()
 	if err != nil {
-		return registry.ServiceEndpoint{}, err
+		return types.ServiceEndpoint{}, err
 	}
 
-	endpoint := registry.ServiceEndpoint{}
+	endpoint := types.ServiceEndpoint{}
 	if service, ok := services[serviceID]; ok {
 		endpoint.Port = service.Port
 		endpoint.ServiceId = serviceID
