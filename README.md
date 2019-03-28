@@ -36,7 +36,7 @@ func initializeConfiguration(useRegistry bool, useProfile string) (*Configuratio
 	}
 
     if useRegistry {
-        registryConfig := registry.Config{
+        registryConfig := types.Config{
             Host:            conf.Registry.Host,
             Port:            conf.Registry.Port,
             Type:            conf.Registry.Type,
@@ -49,7 +49,7 @@ func initializeConfiguration(useRegistry bool, useProfile string) (*Configuratio
             Stem:            internal.ConfigRegistryStem,
         }
 
-        registryClient, err = factory.NewRegistryClient(registryConfig)
+        registryClient, err = registry.NewRegistryClient(registryConfig)
     	if err != nil {
     		return fmt.Errorf("connection to Registry could not be made: %v", err.Error())
     	}
@@ -123,11 +123,12 @@ func listenForConfigChanges() {
 This code snippet shows how to get dependent service endpoint information and check status of the dependent service.
 ```
     ...
-    if registry.Client != nil {
-        endpoint, err = registry.Client.GetServiceEndpoint(params.ServiceKey)
+    if e.RegistryClient != nil {
+	    endpoint, err = (*e.RegistryClient).GetServiceEndpoint(params.ServiceKey)
+	    ...
         url := fmt.Sprintf("http://%s:%v%s", endpoint.Address, endpoint.Port, params.Path)
         ...
-        if registry.Client.IsServiceAvailable(params.ServiceKey) {
+        if (*e.RegistryClient).IsServiceAvailable(params.ServiceKey) {
            ...
         }
     } 
