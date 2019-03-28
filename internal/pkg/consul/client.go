@@ -18,27 +18,27 @@ package consul
 
 import (
 	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/edgexfoundry/go-mod-registry/pkg/types"
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/mitchellh/consulstructure"
 	"github.com/pelletier/go-toml"
 	"github.com/pkg/errors"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const consulStatusPath = "/v1/agent/self"
 const serviceStatusPass = "passing"
-
 
 type consulClient struct {
 	consulUrl           string
 	consulClient        *consulapi.Client
 	consulConfig        *consulapi.Config
 	configBasePath      string
-	serviceKey           string
+	serviceKey          string
 	serviceAddress      string
 	servicePort         int
 	healthCheckUrl      string
@@ -46,10 +46,10 @@ type consulClient struct {
 }
 
 // Create new Consul Client. Service details are optional, not needed just for configuration, but required if registering
-func NewConsulClient(registryConfig types.Config,) (*consulClient, error) {
+func NewConsulClient(registryConfig types.Config) (*consulClient, error) {
 
 	client := consulClient{
-		serviceKey:      registryConfig.ServiceKey,
+		serviceKey:     registryConfig.ServiceKey,
 		consulUrl:      registryConfig.GetRegistryUrl(),
 		configBasePath: registryConfig.Stem + registryConfig.ServiceKey,
 	}
