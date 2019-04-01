@@ -188,9 +188,12 @@ func (client *consulClient) GetConfiguration(configStruct interface{}) (interfac
 	decoder.ErrCh = errorChannel
 	decoder.UpdateCh = updateChannel
 
-	defer decoder.Close()
-	defer close(updateChannel)
-	defer close(errorChannel)
+	defer func() {
+		decoder.Close()
+		close(updateChannel)
+		close(errorChannel)
+	}()
+
 	go decoder.Run()
 
 	select {
@@ -220,8 +223,6 @@ func (client *consulClient) WatchForChanges(updateChannel chan<- interface{}, er
 	decoder.Prefix = client.configBasePath + watchKey
 	decoder.ErrCh = errorChannel
 	decoder.UpdateCh = updateChannel
-
-	defer decoder.Close()
 
 	go decoder.Run()
 }
