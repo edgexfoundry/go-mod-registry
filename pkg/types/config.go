@@ -50,14 +50,14 @@ type Config struct {
 //
 
 func (config Config) GetRegistryUrl() string {
-	return fmt.Sprintf("%s://%s:%v",  config.GetRegistryProtocol(), config.Host, config.Port)
+	return fmt.Sprintf("%s://%s:%v", config.GetRegistryProtocol(), config.Host, config.Port)
 }
 
-func  (config Config) GetHealthCheckUrl() string {
+func (config Config) GetHealthCheckUrl() string {
 	return fmt.Sprintf("%s://%s:%v%s", config.GetServiceProtocol(), config.ServiceHost, config.ServicePort, config.CheckRoute)
 }
 
-func (config Config)  GetRegistryProtocol() string {
+func (config Config) GetRegistryProtocol() string {
 	if config.Protocol == "" {
 		return "http"
 	}
@@ -65,7 +65,7 @@ func (config Config)  GetRegistryProtocol() string {
 	return config.Protocol
 }
 
-func (config Config)  GetServiceProtocol() string {
+func (config Config) GetServiceProtocol() string {
 	if config.ServiceProtocol == "" {
 		return "http"
 	}

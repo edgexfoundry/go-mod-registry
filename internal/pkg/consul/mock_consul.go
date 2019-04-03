@@ -32,8 +32,8 @@ import (
 const verbose = false
 
 type MockConsul struct {
-	keyValueStore map[string]*consulapi.KVPair
-	serviceStore  map[string]consulapi.AgentService
+	keyValueStore     map[string]*consulapi.KVPair
+	serviceStore      map[string]consulapi.AgentService
 	serviceCheckStore map[string]consulapi.AgentCheck
 }
 
@@ -243,12 +243,12 @@ func (mock *MockConsul) Start() *httptest.Server {
 				if healthCheck.AgentServiceCheck.HTTP != "" && healthCheck.AgentServiceCheck.Interval != "" {
 					go func() {
 						check := consulapi.AgentCheck{
-							Node: "Mock Consul server",
-							CheckID: "Health Check: " + healthCheck.ServiceID,
-							Name: "Health Check: " + healthCheck.ServiceID,
-							Status: "TBD",
-							Output: "TBD",
-							ServiceID: healthCheck.ServiceID,
+							Node:        "Mock Consul server",
+							CheckID:     "Health Check: " + healthCheck.ServiceID,
+							Name:        "Health Check: " + healthCheck.ServiceID,
+							Status:      "TBD",
+							Output:      "TBD",
+							ServiceID:   healthCheck.ServiceID,
 							ServiceName: healthCheck.ServiceID,
 						}
 
