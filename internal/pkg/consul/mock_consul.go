@@ -48,6 +48,12 @@ func NewMockConsul() *MockConsul {
 var keyChannels map[string]chan bool
 var PrefixChannels map[string]chan bool
 
+func (mock *MockConsul) Reset() {
+	mock.keyValueStore = make(map[string]*consulapi.KVPair)
+	mock.serviceStore = make(map[string]consulapi.AgentService)
+	mock.serviceCheckStore = make(map[string]consulapi.AgentCheck)
+}
+
 func (mock *MockConsul) Start() *httptest.Server {
 	keyChannels = make(map[string]chan bool)
 	var consulIndex = 1
