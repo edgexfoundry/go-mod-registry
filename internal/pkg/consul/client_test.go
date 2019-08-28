@@ -61,11 +61,13 @@ type MyConfig struct {
 	LogLevel string
 }
 
+var mockConsul *MockConsul
+
 func TestMain(m *testing.M) {
 
 	var testMockServer *httptest.Server
 	if testHost == "" || port != 8500 {
-		mockConsul := NewMockConsul()
+		mockConsul = NewMockConsul()
 		testMockServer = mockConsul.Start()
 
 		URL, _ := url.Parse(testMockServer.URL)
@@ -91,10 +93,7 @@ func TestHasConfigurationFalse(t *testing.T) {
 	client := makeConsulClient(t, defaultServicePort, true)
 
 	// Make sure the configuration doesn't already exists
-	_, err := client.consulClient.KV().Delete(client.configBasePath, nil)
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
+	reset(t, client)
 
 	// Don't push anything in yet so configuration will not exists
 
@@ -110,10 +109,7 @@ func TestHasConfigurationTrue(t *testing.T) {
 	client := makeConsulClient(t, defaultServicePort, true)
 
 	// Make sure the configuration doesn't already exists
-	_, err := client.consulClient.KV().Delete(client.configBasePath, nil)
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
+	reset(t, client)
 
 	// Now push a value so the configuration will exist
 	_ = client.PutConfigurationValue("Dummy", []byte("Value"))
@@ -124,6 +120,34 @@ func TestHasConfigurationTrue(t *testing.T) {
 	}
 
 	assert.True(t, actual)
+}
+
+func TestHasConfigurationPartialServiceKey(t *testing.T) {
+	client := makeConsulClient(t, defaultServicePort, true)
+
+	// Make sure the configuration doesn't already exists
+	reset(t, client)
+
+	base := client.configBasePath
+	if strings.LastIndex(base, "/") == len(base)-1 {
+		base = base[:len(base)-1]
+	}
+	// Add a key with similar base path
+	keyPair := api.KVPair{
+		Key:   base + "-test/some-key",
+		Value: []byte("Nothing"),
+	}
+	_, err := client.consulClient.KV().Put(&keyPair, nil)
+	if !assert.NoError(t, err) {
+		t.Fatal()
+	}
+
+	actual, err := client.HasConfiguration()
+	if !assert.NoError(t, err) {
+		t.Fatal()
+	}
+
+	assert.False(t, actual)
 }
 
 func TestHasConfigurationError(t *testing.T) {
@@ -356,11 +380,8 @@ func TestConfigurationValueExists(t *testing.T) {
 	client := makeConsulClient(t, defaultServicePort, true)
 	expected := false
 
-	// Make sure the target key/value doesn't already exists
-	_, err := client.consulClient.KV().Delete(fullKey, nil)
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
+	// Make sure the configuration doesn't already exists
+	reset(t, client)
 
 	actual, err := client.ConfigurationValueExists(key)
 	if !assert.NoError(t, err) {
@@ -422,7 +443,9 @@ func TestPutConfigurationValue(t *testing.T) {
 	expectedFullKey := consulBasePath + key
 	client := makeConsulClient(t, defaultServicePort, true)
 
-	//clean up the the key, if it exists
+	// Make sure the configuration doesn't already exists
+	reset(t, client)
+
 	_, _ = client.consulClient.KV().Delete(expectedFullKey, nil)
 
 	err := client.PutConfigurationValue(key, expected)
@@ -705,23 +728,28 @@ func TestWatchForChanges(t *testing.T) {
 	_ = client.PutConfigurationValue("Host", []byte(expectedConfig.Host))
 	_ = client.PutConfigurationValue("LogLevel", []byte(expectedConfig.LogLevel))
 
-	updateChannel := make(chan interface{})
+	loggingUpdateChannel := make(chan interface{})
+	serviceUpdateChannel := make(chan interface{})
 	errorChannel := make(chan error)
 
-	client.WatchForChanges(updateChannel, errorChannel, &LoggingInfo{}, "Logging")
+	client.WatchForChanges(loggingUpdateChannel, errorChannel, &LoggingInfo{}, "Logging")
+	client.WatchForChanges(serviceUpdateChannel, errorChannel, &types.ServiceEndpoint{}, "/Service")
 
-	pass := 1
+	loggingPass := 1
+	servicePass := 1
+	updates := 0
+
 	for {
 		select {
 		case <-time.After(5 * time.Second):
-			t.Fatalf("timeout waiting on configuration changes")
+			t.Fatalf("timeout waiting on Logging configuration loggingChanges")
 
-		case changes := <-updateChannel:
-			assert.NotNil(t, changes)
-			logInfo := changes.(*LoggingInfo)
+		case loggingChanges := <-loggingUpdateChannel:
+			assert.NotNil(t, loggingChanges)
+			logInfo := loggingChanges.(*LoggingInfo)
 
 			// first pass is for Consul Decoder always sending data once watch has been setup. It hasn't actually changed
-			if pass == 1 {
+			if loggingPass == 1 {
 				if !assert.Equal(t, logInfo.File, expectedConfig.Logging.File) {
 					t.Fatal()
 				}
@@ -729,16 +757,43 @@ func TestWatchForChanges(t *testing.T) {
 				// Make a change to logging
 				_ = client.PutConfigurationValue("Logging/File", []byte(expectedChange))
 
-				pass--
+				loggingPass--
 				continue
 			}
 
 			// Now the data should have changed
 			assert.Equal(t, logInfo.File, expectedChange)
-			return
+			updates++
+			if updates == 2 {
+				return
+			}
+
+		case serviceChanges := <-serviceUpdateChannel:
+			assert.NotNil(t, serviceChanges)
+			service := serviceChanges.(*types.ServiceEndpoint)
+
+			// first pass is for Consul Decoder always sending data once watch has been setup. It hasn't actually changed
+			if servicePass == 1 {
+				if !assert.Equal(t, service.Port, expectedConfig.Service.Port) {
+					t.Fatal()
+				}
+
+				// Make a change to logging
+				_ = client.PutConfigurationValue("Service/Host", []byte(expectedChange))
+
+				servicePass--
+				continue
+			}
+
+			// Now the data should have changed
+			assert.Equal(t, service.Host, expectedChange)
+			updates++
+			if updates == 2 {
+				return
+			}
 
 		case waitError := <-errorChannel:
-			t.Fatalf("received WatchForChanges error: %v", waitError)
+			t.Fatalf("received WatchForChanges error for Logging: %v", waitError)
 		}
 	}
 }
@@ -776,4 +831,21 @@ func createKeyValueMap() map[string]interface{} {
 	configMap["bool"] = true
 
 	return configMap
+}
+
+func reset(t *testing.T, client *consulClient) {
+	// Make sure the configuration doesn't already exists
+	if mockConsul != nil {
+		mockConsul.Reset()
+	} else {
+		key := client.configBasePath
+		if strings.LastIndex(key, "/") == len(key)-1 {
+			key = key[:len(key)-1]
+		}
+
+		_, err := client.consulClient.KV().Delete(key, nil)
+		if !assert.NoError(t, err) {
+			t.Fatal()
+		}
+	}
 }

@@ -51,7 +51,7 @@ func NewConsulClient(registryConfig types.Config) (*consulClient, error) {
 	client := consulClient{
 		serviceKey:     registryConfig.ServiceKey,
 		consulUrl:      registryConfig.GetRegistryUrl(),
-		configBasePath: registryConfig.Stem + registryConfig.ServiceKey,
+		configBasePath: registryConfig.Stem + registryConfig.ServiceKey + "/",
 	}
 
 	// ServiceHost will be empty when client isn't registering the service
@@ -212,9 +212,9 @@ func (client *consulClient) GetConfiguration(configStruct interface{}) (interfac
 // Passed in struct is only a reference for decoder, empty struct is ok
 // Sends the configuration in the target struct as interface{} on updateChannel, which caller must cast
 func (client *consulClient) WatchForChanges(updateChannel chan<- interface{}, errorChannel chan<- error, configuration interface{}, watchKey string) {
-	// some watch keys may already have the "/", add it for those that don't
-	if !strings.Contains(watchKey, "/") {
-		watchKey = "/" + watchKey
+	// some watch keys may have start with "/", need to remove it since the base path already has it.
+	if strings.Index(watchKey, "/") == 0 {
+		watchKey = watchKey[1:]
 	}
 
 	decoder := client.newConsulDecoder()
@@ -326,7 +326,7 @@ func (client *consulClient) IsServiceAvailable(serviceKey string) error {
 }
 
 func (client *consulClient) fullPath(name string) string {
-	return client.configBasePath + "/" + name
+	return client.configBasePath + name
 }
 
 type pair struct {
