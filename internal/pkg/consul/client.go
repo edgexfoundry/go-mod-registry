@@ -22,7 +22,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/edgexfoundry/go-mod-registry/pkg/types"
 	consulapi "github.com/hashicorp/consul/api"
@@ -46,13 +45,6 @@ type consulClient struct {
 	healthCheckInterval string
 }
 
-func getLastRune(s string) string {
-	j := len(s)
-	_, size := utf8.DecodeLastRuneInString(s[:j])
-	j -= size
-	return s[j:]
-}
-
 // Create new Consul Client. Service details are optional, not needed just for configuration, but required if registering
 func NewConsulClient(registryConfig types.Config) (*consulClient, error) {
 
@@ -62,7 +54,7 @@ func NewConsulClient(registryConfig types.Config) (*consulClient, error) {
 		configBasePath: registryConfig.Stem + registryConfig.ServiceKey,
 	}
 
-	if getLastRune(client.configBasePath) != "/" {
+	if len(client.configBasePath) > 0 && client.configBasePath[len(client.configBasePath)-1:] != "/" {
 		client.configBasePath = client.configBasePath + "/"
 	}
 
