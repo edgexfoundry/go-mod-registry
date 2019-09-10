@@ -51,7 +51,11 @@ func NewConsulClient(registryConfig types.Config) (*consulClient, error) {
 	client := consulClient{
 		serviceKey:     registryConfig.ServiceKey,
 		consulUrl:      registryConfig.GetRegistryUrl(),
-		configBasePath: registryConfig.Stem + registryConfig.ServiceKey + "/",
+		configBasePath: registryConfig.Stem + registryConfig.ServiceKey,
+	}
+
+	if len(client.configBasePath) > 0 && client.configBasePath[len(client.configBasePath)-1:] != "/" {
+		client.configBasePath = client.configBasePath + "/"
 	}
 
 	// ServiceHost will be empty when client isn't registering the service
