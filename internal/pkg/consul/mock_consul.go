@@ -258,8 +258,9 @@ func (mock *MockConsul) Start() *httptest.Server {
 							ServiceName: healthCheck.ServiceID,
 						}
 
-						_, err := http.Get(healthCheck.AgentServiceCheck.HTTP)
-						if err != nil {
+						response, err := http.Get(healthCheck.AgentServiceCheck.HTTP)
+
+						if err != nil || response.StatusCode != http.StatusOK {
 							check.Status = "critical"
 							check.Output = "HTTP GET " + healthCheck.AgentServiceCheck.HTTP + ": health check endpoint unreachable"
 
@@ -267,6 +268,7 @@ func (mock *MockConsul) Start() *httptest.Server {
 								log.Print("Not able to reach health check endpoint")
 							}
 						} else {
+
 							check.Status = "passing"
 							check.Output = "HTTP GET " + healthCheck.AgentServiceCheck.HTTP + ": 200 OK Output: pong"
 

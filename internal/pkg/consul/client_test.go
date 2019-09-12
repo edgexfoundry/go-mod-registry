@@ -38,7 +38,7 @@ const (
 	serviceName             = "consulUnitTest"
 	serviceHost             = "localhost"
 	defaultServicePort      = 8000
-	consulBasePath          = "edgex/core/1.0/" + serviceName + "/"
+	consulBasePath          = "edgex/core/1.0/"
 	expectedHealthCheckPath = "api/v1/ping"
 )
 
@@ -83,14 +83,14 @@ func TestMain(m *testing.M) {
 }
 
 func TestIsAlive(t *testing.T) {
-	client := makeConsulClient(t, defaultServicePort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
 	if !client.IsAlive() {
 		t.Fatal("Consul not running")
 	}
 }
 
 func TestHasConfigurationFalse(t *testing.T) {
-	client := makeConsulClient(t, defaultServicePort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
 
 	// Make sure the configuration doesn't already exists
 	reset(t, client)
@@ -106,7 +106,7 @@ func TestHasConfigurationFalse(t *testing.T) {
 }
 
 func TestHasConfigurationTrue(t *testing.T) {
-	client := makeConsulClient(t, defaultServicePort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
 
 	// Make sure the configuration doesn't already exists
 	reset(t, client)
@@ -123,7 +123,7 @@ func TestHasConfigurationTrue(t *testing.T) {
 }
 
 func TestHasConfigurationPartialServiceKey(t *testing.T) {
-	client := makeConsulClient(t, defaultServicePort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
 
 	// Make sure the configuration doesn't already exists
 	reset(t, client)
@@ -157,7 +157,7 @@ func TestHasConfigurationError(t *testing.T) {
 		port = goodPort
 	}()
 
-	client := makeConsulClient(t, defaultServicePort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
 
 	_, err := client.HasConfiguration()
 	assert.Error(t, err, "expected error checking configuration existence")
@@ -167,7 +167,7 @@ func TestHasConfigurationError(t *testing.T) {
 
 func TestRegisterNoServiceInfoError(t *testing.T) {
 	// Don't set the service info so check for info results in error
-	client := makeConsulClient(t, defaultServicePort, false)
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, false)
 
 	err := client.Register()
 	if !assert.Error(t, err, "Expected error due to no service info") {
@@ -200,7 +200,7 @@ func TestRegisterWithPingCallback(t *testing.T) {
 	serverUrl, _ := url.Parse(server.URL)
 	serverPort, _ := strconv.Atoi(serverUrl.Port())
 
-	client := makeConsulClient(t, serverPort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), serverPort, true)
 	// Make sure service is not already registered.
 	_ = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
 	_ = client.consulClient.Agent().CheckDeregister(client.serviceKey)
@@ -227,14 +227,15 @@ func TestRegisterWithPingCallback(t *testing.T) {
 }
 
 func TestGetServiceEndpoint(t *testing.T) {
+	uniqueServiceName := getUniqueServiceName()
 	expectedNotFoundEndpoint := types.ServiceEndpoint{}
 	expectedFoundEndpoint := types.ServiceEndpoint{
-		ServiceId: serviceName,
+		ServiceId: uniqueServiceName,
 		Host:      serviceHost,
 		Port:      defaultServicePort,
 	}
 
-	client := makeConsulClient(t, defaultServicePort, true)
+	client := makeConsulClient(t, uniqueServiceName, defaultServicePort, true)
 	// Make sure service is not already registered.
 	_ = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
 	_ = client.consulClient.Agent().CheckDeregister(client.serviceKey)
@@ -272,7 +273,7 @@ func TestGetServiceEndpoint(t *testing.T) {
 
 func TestIsServiceAvailableNotRegistered(t *testing.T) {
 
-	client := makeConsulClient(t, defaultServicePort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
 
 	// Make sure service is not already registered.
 	_ = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
@@ -288,7 +289,7 @@ func TestIsServiceAvailableNotRegistered(t *testing.T) {
 
 func TestIsServiceAvailableNotHealthy(t *testing.T) {
 
-	client := makeConsulClient(t, defaultServicePort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
 
 	// Make sure service is not already registered.
 	_ = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
@@ -339,7 +340,7 @@ func TestIsServiceAvailableHealthy(t *testing.T) {
 	serverUrl, _ := url.Parse(server.URL)
 	serverPort, _ := strconv.Atoi(serverUrl.Port())
 
-	client := makeConsulClient(t, serverPort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), serverPort, true)
 	// Make sure service is not already registered.
 	_ = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
 	_ = client.consulClient.Agent().CheckDeregister(client.serviceKey)
@@ -375,9 +376,10 @@ func TestIsServiceAvailableHealthy(t *testing.T) {
 func TestConfigurationValueExists(t *testing.T) {
 	key := "Foo"
 	value := []byte("bar")
-	fullKey := consulBasePath + key
+	uniqueServiceName := getUniqueServiceName()
+	fullKey := consulBasePath + uniqueServiceName + "/" + key
 
-	client := makeConsulClient(t, defaultServicePort, true)
+	client := makeConsulClient(t, uniqueServiceName, defaultServicePort, true)
 	expected := false
 
 	// Make sure the configuration doesn't already exists
@@ -414,8 +416,9 @@ func TestConfigurationValueExists(t *testing.T) {
 func TestGetConfigurationValue(t *testing.T) {
 	key := "Foo"
 	expected := []byte("bar")
-	fullKey := consulBasePath + key
-	client := makeConsulClient(t, defaultServicePort, true)
+	uniqueServiceName := getUniqueServiceName()
+	fullKey := consulBasePath + uniqueServiceName + "/" + key
+	client := makeConsulClient(t, uniqueServiceName, defaultServicePort, true)
 
 	// Make sure the target key/value exists
 	keyPair := api.KVPair{
@@ -440,8 +443,10 @@ func TestGetConfigurationValue(t *testing.T) {
 func TestPutConfigurationValue(t *testing.T) {
 	key := "Foo"
 	expected := []byte("bar")
-	expectedFullKey := consulBasePath + key
-	client := makeConsulClient(t, defaultServicePort, true)
+	uniqueServiceName := getUniqueServiceName()
+	expectedFullKey := consulBasePath + uniqueServiceName + "/" + key
+
+	client := makeConsulClient(t, uniqueServiceName, defaultServicePort, true)
 
 	// Make sure the configuration doesn't already exists
 	reset(t, client)
@@ -481,7 +486,7 @@ func TestGetConfiguration(t *testing.T) {
 		LogLevel: "debug",
 	}
 
-	client := makeConsulClient(t, defaultServicePort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
 
 	_ = client.PutConfigurationValue("Logging/EnableRemote", []byte(strconv.FormatBool(expected.Logging.EnableRemote)))
 	_ = client.PutConfigurationValue("Logging/File", []byte(expected.Logging.File))
@@ -530,7 +535,7 @@ func TestPutConfiguration(t *testing.T) {
 		LogLevel: "debug",
 	}
 
-	client := makeConsulClient(t, defaultServicePort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
 
 	// Make sure the tree of values doesn't exist.
 	_, _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
@@ -566,7 +571,7 @@ func configValueSet(key string, client *consulClient) bool {
 }
 
 func TestPutConfigurationTomlNoPreviousValues(t *testing.T) {
-	client := makeConsulClient(t, defaultServicePort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
 
 	// Make sure the tree of values doesn't exist.
 	_, _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
@@ -601,7 +606,7 @@ func TestPutConfigurationTomlNoPreviousValues(t *testing.T) {
 }
 
 func TestPutConfigurationTomlWithoutOverWrite(t *testing.T) {
-	client := makeConsulClient(t, defaultServicePort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
 
 	// Make sure the tree of values doesn't exist.
 	_, _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
@@ -648,7 +653,7 @@ func TestPutConfigurationTomlWithoutOverWrite(t *testing.T) {
 }
 
 func TestPutConfigurationTomlOverWrite(t *testing.T) {
-	client := makeConsulClient(t, defaultServicePort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
 
 	// Make sure the tree of values doesn't exist.
 	_, _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
@@ -710,7 +715,7 @@ func TestWatchForChanges(t *testing.T) {
 
 	expectedChange := "random"
 
-	client := makeConsulClient(t, defaultServicePort, false)
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, false)
 
 	// Make sure the tree of values doesn't exist.
 	_, _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
@@ -798,7 +803,7 @@ func TestWatchForChanges(t *testing.T) {
 	}
 }
 
-func makeConsulClient(t *testing.T, servicePort int, setServiceInfo bool) *consulClient {
+func makeConsulClient(t *testing.T, serviceName string, servicePort int, setServiceInfo bool) *consulClient {
 	registryConfig := types.Config{
 		Host:          testHost,
 		Port:          port,
@@ -848,4 +853,8 @@ func reset(t *testing.T, client *consulClient) {
 			t.Fatal()
 		}
 	}
+}
+
+func getUniqueServiceName() string {
+	return serviceName + strconv.Itoa(time.Now().Nanosecond())
 }
