@@ -54,7 +54,8 @@ func (mock *MockConsul) Reset() {
 	mock.serviceCheckStore = make(map[string]consulapi.AgentCheck)
 }
 
-func (mock *MockConsul) Start() *httptest.Server {
+func (mock *MockConsul) Start() (*httptest.Server, chan bool) {
+	ch := make(chan bool)
 	keyChannels = make(map[string]chan bool)
 	var consulIndex = 1
 	PrefixChannels = make(map[string]chan bool)
@@ -276,7 +277,7 @@ func (mock *MockConsul) Start() *httptest.Server {
 						}
 
 						mock.serviceCheckStore[healthCheck.ServiceID] = check
-
+						ch <- true
 					}()
 
 				}
@@ -284,7 +285,7 @@ func (mock *MockConsul) Start() *httptest.Server {
 				writer.Header().Set("Content-Type", "application/json")
 				writer.WriteHeader(http.StatusOK)
 			}
-		} else if strings.Contains(request.URL.Path, "/v1/health/checks") {
+		} else if strings.Contains(request.URL.Path, "/v1/health/checks/") {
 			switch request.Method {
 			case "GET":
 				agentChecks := make([]consulapi.AgentCheck, 0)
@@ -305,7 +306,7 @@ func (mock *MockConsul) Start() *httptest.Server {
 		}
 	}))
 
-	return testMockServer
+	return testMockServer, ch
 }
 
 func waitForNextPut(key string, waitTime string) {

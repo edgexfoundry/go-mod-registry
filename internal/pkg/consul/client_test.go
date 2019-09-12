@@ -46,6 +46,7 @@ const (
 var (
 	testHost = ""
 	port     = 0
+	ch       chan bool
 )
 
 type LoggingInfo struct {
@@ -68,7 +69,7 @@ func TestMain(m *testing.M) {
 	var testMockServer *httptest.Server
 	if testHost == "" || port != 8500 {
 		mockConsul = NewMockConsul()
-		testMockServer = mockConsul.Start()
+		testMockServer, ch = mockConsul.Start()
 
 		URL, _ := url.Parse(testMockServer.URL)
 		testHost = URL.Hostname()
@@ -365,6 +366,8 @@ func TestIsServiceAvailableHealthy(t *testing.T) {
 	if !assert.True(t, receivedPing, "Never received health check ping") {
 		t.Fatal()
 	}
+
+	<-ch
 
 	actual := client.IsServiceAvailable(client.serviceKey)
 	if !assert.NoError(t, actual, "IsServiceAvailable result not as expected") {
