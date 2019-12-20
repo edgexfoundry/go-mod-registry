@@ -17,7 +17,6 @@
 package consul
 
 import (
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -27,8 +26,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/edgexfoundry/go-mod-registry/pkg/types"
@@ -38,7 +35,6 @@ const (
 	serviceName             = "consulUnitTest"
 	serviceHost             = "localhost"
 	defaultServicePort      = 8000
-	consulBasePath          = "edgex/core/1.0/"
 	expectedHealthCheckPath = "api/v1/ping"
 )
 
@@ -47,19 +43,6 @@ var (
 	testHost = ""
 	port     = 0
 )
-
-type LoggingInfo struct {
-	EnableRemote bool
-	File         string
-}
-
-type MyConfig struct {
-	Logging  LoggingInfo
-	Service  types.ServiceEndpoint
-	Port     int
-	Host     string
-	LogLevel string
-}
 
 var mockConsul *MockConsul
 
@@ -87,82 +70,6 @@ func TestIsAlive(t *testing.T) {
 	if !client.IsAlive() {
 		t.Fatal("Consul not running")
 	}
-}
-
-func TestHasConfigurationFalse(t *testing.T) {
-	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
-
-	// Make sure the configuration doesn't already exists
-	reset(t, client)
-
-	// Don't push anything in yet so configuration will not exists
-
-	actual, err := client.HasConfiguration()
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
-
-	assert.False(t, actual)
-}
-
-func TestHasConfigurationTrue(t *testing.T) {
-	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
-
-	// Make sure the configuration doesn't already exists
-	reset(t, client)
-
-	// Now push a value so the configuration will exist
-	_ = client.PutConfigurationValue("Dummy", []byte("Value"))
-
-	actual, err := client.HasConfiguration()
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
-
-	assert.True(t, actual)
-}
-
-func TestHasConfigurationPartialServiceKey(t *testing.T) {
-	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
-
-	// Make sure the configuration doesn't already exists
-	reset(t, client)
-
-	base := client.configBasePath
-	if strings.LastIndex(base, "/") == len(base)-1 {
-		base = base[:len(base)-1]
-	}
-	// Add a key with similar base path
-	keyPair := api.KVPair{
-		Key:   base + "-test/some-key",
-		Value: []byte("Nothing"),
-	}
-	_, err := client.consulClient.KV().Put(&keyPair, nil)
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
-
-	actual, err := client.HasConfiguration()
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
-
-	assert.False(t, actual)
-}
-
-func TestHasConfigurationError(t *testing.T) {
-	goodPort := port
-	port = 1234 // change the Consul port to bad port
-	defer func() {
-		port = goodPort
-	}()
-
-	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
-
-	_, err := client.HasConfiguration()
-	assert.Error(t, err, "expected error checking configuration existence")
-
-	assert.Contains(t, err.Error(), "checking configuration existence")
 }
 
 func TestRegisterNoServiceInfoError(t *testing.T) {
@@ -226,6 +133,29 @@ func TestRegisterWithPingCallback(t *testing.T) {
 	assert.True(t, receivedPing, "Never received health check ping")
 }
 
+func TestUnregister(t *testing.T) {
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
+
+	// Make sure service is not already registered.
+	_ = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
+	_ = client.consulClient.Agent().CheckDeregister(client.serviceKey)
+
+	err := client.Register()
+	if !assert.NoError(t, err, "Error registering service") {
+		t.Fatal()
+	}
+
+	err = client.Unregister()
+	if !assert.NoError(t, err, "Error un-registering service") {
+		t.Fatal()
+	}
+
+	_, err = client.GetServiceEndpoint(client.serviceKey)
+	if !assert.Error(t, err, "Expected error getting service endpoint") {
+		t.Fatal()
+	}
+}
+
 func TestGetServiceEndpoint(t *testing.T) {
 	uniqueServiceName := getUniqueServiceName()
 	expectedNotFoundEndpoint := types.ServiceEndpoint{}
@@ -279,12 +209,16 @@ func TestIsServiceAvailableNotRegistered(t *testing.T) {
 	_ = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
 	_ = client.consulClient.Agent().CheckDeregister(client.serviceKey)
 
-	actual := client.IsServiceAvailable(client.serviceKey)
-	if !assert.Error(t, actual, "expected error") {
+	actual, err := client.IsServiceAvailable(client.serviceKey)
+
+	if !assert.False(t, actual) {
 		t.Fatal()
 	}
 
-	assert.Contains(t, actual.Error(), "service is not registered", "Wrong error")
+	if !assert.Error(t, err, "expected error") {
+		t.Fatal()
+	}
+	assert.Contains(t, err.Error(), "service is not registered", "Wrong error")
 }
 
 func TestIsServiceAvailableNotHealthy(t *testing.T) {
@@ -310,12 +244,15 @@ func TestIsServiceAvailableNotHealthy(t *testing.T) {
 	// Give time for health check to run
 	time.Sleep(2 * time.Second)
 
-	actual := client.IsServiceAvailable(client.serviceKey)
-	if !assert.Error(t, actual, "expected error") {
+	actual, err := client.IsServiceAvailable(client.serviceKey)
+	if !assert.False(t, actual) {
+		t.Fatal()
+	}
+	if !assert.Error(t, err, "expected error") {
 		t.Fatal()
 	}
 
-	assert.Contains(t, actual.Error(), "service not healthy", "Wrong error")
+	assert.Contains(t, err.Error(), "service not healthy", "Wrong error")
 }
 
 func TestIsServiceAvailableHealthy(t *testing.T) {
@@ -356,6 +293,7 @@ func TestIsServiceAvailableHealthy(t *testing.T) {
 	if !assert.NoError(t, err) {
 		t.Fatal()
 	}
+
 	// Give time for health check to run
 	go func() {
 		time.Sleep(10 * time.Second)
@@ -367,439 +305,12 @@ func TestIsServiceAvailableHealthy(t *testing.T) {
 		t.Fatal()
 	}
 
-	actual := client.IsServiceAvailable(client.serviceKey)
-	if !assert.NoError(t, actual, "IsServiceAvailable result not as expected") {
+	actual, err := client.IsServiceAvailable(client.serviceKey)
+	if !assert.NoError(t, err, "IsServiceAvailable result not as expected") {
 		t.Fatal()
 	}
-}
-
-func TestConfigurationValueExists(t *testing.T) {
-	key := "Foo"
-	value := []byte("bar")
-	uniqueServiceName := getUniqueServiceName()
-	fullKey := consulBasePath + uniqueServiceName + "/" + key
-
-	client := makeConsulClient(t, uniqueServiceName, defaultServicePort, true)
-	expected := false
-
-	// Make sure the configuration doesn't already exists
-	reset(t, client)
-
-	actual, err := client.ConfigurationValueExists(key)
-	if !assert.NoError(t, err) {
+	if !assert.True(t, actual, "IsServiceAvailable result not as expected") {
 		t.Fatal()
-	}
-	if !assert.False(t, actual) {
-		t.Fatal()
-	}
-
-	keyPair := api.KVPair{
-		Key:   fullKey,
-		Value: value,
-	}
-
-	_, err = client.consulClient.KV().Put(&keyPair, nil)
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
-
-	expected = true
-	actual, err = client.ConfigurationValueExists(key)
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
-	if !assert.Equal(t, expected, actual) {
-		t.Fatal()
-	}
-}
-
-func TestGetConfigurationValue(t *testing.T) {
-	key := "Foo"
-	expected := []byte("bar")
-	uniqueServiceName := getUniqueServiceName()
-	fullKey := consulBasePath + uniqueServiceName + "/" + key
-	client := makeConsulClient(t, uniqueServiceName, defaultServicePort, true)
-
-	// Make sure the target key/value exists
-	keyPair := api.KVPair{
-		Key:   fullKey,
-		Value: expected,
-	}
-
-	_, err := client.consulClient.KV().Put(&keyPair, nil)
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
-
-	actual, err := client.GetConfigurationValue(key)
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
-	if !assert.Equal(t, expected, actual) {
-		t.Fatal()
-	}
-}
-
-func TestPutConfigurationValue(t *testing.T) {
-	key := "Foo"
-	expected := []byte("bar")
-	uniqueServiceName := getUniqueServiceName()
-	expectedFullKey := consulBasePath + uniqueServiceName + "/" + key
-
-	client := makeConsulClient(t, uniqueServiceName, defaultServicePort, true)
-
-	// Make sure the configuration doesn't already exists
-	reset(t, client)
-
-	_, _ = client.consulClient.KV().Delete(expectedFullKey, nil)
-
-	err := client.PutConfigurationValue(key, expected)
-	assert.NoError(t, err)
-
-	keyValue, _, err := client.consulClient.KV().Get(expectedFullKey, nil)
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
-	if !assert.NotNil(t, keyValue, "%s value not found", expectedFullKey) {
-		t.Fatal()
-	}
-
-	actual := keyValue.Value
-
-	assert.Equal(t, expected, actual)
-
-}
-
-func TestGetConfiguration(t *testing.T) {
-	expected := MyConfig{
-		Logging: LoggingInfo{
-			EnableRemote: true,
-			File:         "NONE",
-		},
-		Service: types.ServiceEndpoint{
-			ServiceId: "Dummy",
-			Host:      "10.6.7.8",
-			Port:      8080,
-		},
-		Port:     8000,
-		Host:     "localhost",
-		LogLevel: "debug",
-	}
-
-	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
-
-	_ = client.PutConfigurationValue("Logging/EnableRemote", []byte(strconv.FormatBool(expected.Logging.EnableRemote)))
-	_ = client.PutConfigurationValue("Logging/File", []byte(expected.Logging.File))
-	_ = client.PutConfigurationValue("Service/ServiceId", []byte(expected.Service.ServiceId))
-	_ = client.PutConfigurationValue("Service/Host", []byte(expected.Service.Host))
-	_ = client.PutConfigurationValue("Service/Port", []byte(strconv.Itoa(expected.Service.Port)))
-	_ = client.PutConfigurationValue("Port", []byte(strconv.Itoa(expected.Port)))
-	_ = client.PutConfigurationValue("Host", []byte(expected.Host))
-	_ = client.PutConfigurationValue("LogLevel", []byte(expected.LogLevel))
-
-	result, err := client.GetConfiguration(&MyConfig{})
-
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
-
-	configuration := result.(*MyConfig)
-
-	if !assert.NotNil(t, configuration) {
-		t.Fatal()
-	}
-
-	assert.Equal(t, expected.Logging.EnableRemote, configuration.Logging.EnableRemote, "Logging.EnableRemote not as expected")
-	assert.Equal(t, expected.Logging.File, configuration.Logging.File, "Logging.File not as expected")
-	assert.Equal(t, expected.Service.Port, configuration.Service.Port, "Service.Port not as expected")
-	assert.Equal(t, expected.Service.Host, configuration.Service.Host, "Service.Host not as expected")
-	assert.Equal(t, expected.Service.ServiceId, configuration.Service.ServiceId, "Service.ServiceId not as expected")
-	assert.Equal(t, expected.Port, configuration.Port, "Port not as expected")
-	assert.Equal(t, expected.Host, configuration.Host, "Host not as expected")
-	assert.Equal(t, expected.LogLevel, configuration.LogLevel, "LogLevel not as expected")
-}
-
-func TestPutConfiguration(t *testing.T) {
-	expected := MyConfig{
-		Logging: LoggingInfo{
-			EnableRemote: true,
-			File:         "NONE",
-		},
-		Service: types.ServiceEndpoint{
-			ServiceId: "Dummy",
-			Host:      "10.6.7.8",
-			Port:      8080,
-		},
-		Port:     8000,
-		Host:     "localhost",
-		LogLevel: "debug",
-	}
-
-	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
-
-	// Make sure the tree of values doesn't exist.
-	_, _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
-
-	defer func() {
-		// Clean up
-		_, _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
-	}()
-
-	err := client.PutConfiguration(expected, true)
-	if !assert.NoErrorf(t, err, "unable to put configuration: %v", err) {
-		t.Fatal()
-	}
-
-	actual, err := client.HasConfiguration()
-	if !assert.True(t, actual, "Failed to put configuration") {
-		t.Fail()
-	}
-
-	assert.True(t, configValueSet("Logging/EnableRemote", client))
-	assert.True(t, configValueSet("Logging/File", client))
-	assert.True(t, configValueSet("Service/ServiceId", client))
-	assert.True(t, configValueSet("Service/Host", client))
-	assert.True(t, configValueSet("Service/Port", client))
-	assert.True(t, configValueSet("Port", client))
-	assert.True(t, configValueSet("Host", client))
-	assert.True(t, configValueSet("LogLevel", client))
-}
-
-func configValueSet(key string, client *consulClient) bool {
-	exists, _ := client.ConfigurationValueExists(key)
-	return exists
-}
-
-func TestPutConfigurationTomlNoPreviousValues(t *testing.T) {
-	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
-
-	// Make sure the tree of values doesn't exist.
-	_, _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
-
-	defer func() {
-		// Clean up
-		_, _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
-	}()
-
-	configMap := createKeyValueMap()
-	configuration, err := toml.TreeFromMap(configMap)
-	if err != nil {
-		log.Fatalf("unable to create TOML Tree from map: %v", err)
-	}
-	err = client.PutConfigurationToml(configuration, false)
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
-
-	keyValues := convertInterfaceToConsulPairs("", configMap)
-	for _, keyValue := range keyValues {
-		expected := string(keyValue.Value)
-		value, err := client.GetConfigurationValue(keyValue.Key)
-		if !assert.NoError(t, err) {
-			t.Fatal()
-		}
-		actual := string(value)
-		if !assert.Equal(t, expected, actual, "Values for %s are not equal", keyValue.Key) {
-			t.Fatal()
-		}
-	}
-}
-
-func TestPutConfigurationTomlWithoutOverWrite(t *testing.T) {
-	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
-
-	// Make sure the tree of values doesn't exist.
-	_, _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
-
-	defer func() {
-		// Clean up
-		_, _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
-	}()
-
-	configMap := createKeyValueMap()
-
-	configuration, _ := toml.TreeFromMap(configMap)
-	err := client.PutConfigurationToml(configuration, false)
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
-
-	//Update map with new value and try to overwrite it
-	configMap["int"] = 2
-	configMap["int64"] = 164
-	configMap["float64"] = 2.4
-	configMap["string"] = "bye"
-	configMap["bool"] = false
-
-	// Try to put new values with overwrite = false
-	configuration, _ = toml.TreeFromMap(configMap)
-	err = client.PutConfigurationToml(configuration, false)
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
-
-	keyValues := convertInterfaceToConsulPairs("", configMap)
-	for _, keyValue := range keyValues {
-		expected := string(keyValue.Value)
-		value, err := client.GetConfigurationValue(keyValue.Key)
-		if !assert.NoError(t, err) {
-			t.Fatal()
-		}
-		actual := string(value)
-		if !assert.NotEqual(t, expected, actual, "Values for %s are equal, expected not equal", keyValue.Key) {
-			t.Fatal()
-		}
-	}
-}
-
-func TestPutConfigurationTomlOverWrite(t *testing.T) {
-	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
-
-	// Make sure the tree of values doesn't exist.
-	_, _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
-	// Clean up after unit test
-	defer func() {
-		_, _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
-	}()
-
-	configMap := createKeyValueMap()
-
-	configuration, _ := toml.TreeFromMap(configMap)
-	err := client.PutConfigurationToml(configuration, false)
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
-
-	//Update map with new value and try to overwrite it
-	configMap["int"] = 2
-	configMap["float64"] = 2.4
-	configMap["string"] = "bye"
-	configMap["bool"] = false
-
-	// Try to put new values with overwrite = True
-	configuration, _ = toml.TreeFromMap(configMap)
-	err = client.PutConfigurationToml(configuration, true)
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
-
-	keyValues := convertInterfaceToConsulPairs("", configMap)
-	for _, keyValue := range keyValues {
-		expected := string(keyValue.Value)
-		value, err := client.GetConfigurationValue(keyValue.Key)
-		if !assert.NoError(t, err) {
-			t.Fatal()
-		}
-		actual := string(value)
-		if !assert.Equal(t, expected, actual, "Values for %s are not equal", keyValue.Key) {
-			t.Fatal()
-		}
-	}
-}
-
-func TestWatchForChanges(t *testing.T) {
-	expectedConfig := MyConfig{
-		Logging: LoggingInfo{
-			EnableRemote: true,
-			File:         "NONE",
-		},
-		Service: types.ServiceEndpoint{
-			ServiceId: "Dummy",
-			Host:      "10.6.7.8",
-			Port:      8080,
-		},
-		Port:     8000,
-		Host:     "localhost",
-		LogLevel: "debug",
-	}
-
-	expectedChange := "random"
-
-	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, false)
-
-	// Make sure the tree of values doesn't exist.
-	_, _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
-	// Clean up after unit test
-	defer func() {
-		_, _ = client.consulClient.KV().DeleteTree(consulBasePath, nil)
-	}()
-
-	_ = client.PutConfigurationValue("Logging/EnableRemote", []byte(strconv.FormatBool(expectedConfig.Logging.EnableRemote)))
-	_ = client.PutConfigurationValue("Logging/File", []byte(expectedConfig.Logging.File))
-	_ = client.PutConfigurationValue("Service/ServiceId", []byte(expectedConfig.Service.ServiceId))
-	_ = client.PutConfigurationValue("Service/Host", []byte(expectedConfig.Service.Host))
-	_ = client.PutConfigurationValue("Service/Port", []byte(strconv.Itoa(expectedConfig.Service.Port)))
-	_ = client.PutConfigurationValue("Port", []byte(strconv.Itoa(expectedConfig.Port)))
-	_ = client.PutConfigurationValue("Host", []byte(expectedConfig.Host))
-	_ = client.PutConfigurationValue("LogLevel", []byte(expectedConfig.LogLevel))
-
-	loggingUpdateChannel := make(chan interface{})
-	serviceUpdateChannel := make(chan interface{})
-	errorChannel := make(chan error)
-
-	client.WatchForChanges(loggingUpdateChannel, errorChannel, &LoggingInfo{}, "Logging")
-	client.WatchForChanges(serviceUpdateChannel, errorChannel, &types.ServiceEndpoint{}, "/Service")
-
-	loggingPass := 1
-	servicePass := 1
-	updates := 0
-
-	for {
-		select {
-		case <-time.After(5 * time.Second):
-			t.Fatalf("timeout waiting on Logging configuration loggingChanges")
-
-		case loggingChanges := <-loggingUpdateChannel:
-			assert.NotNil(t, loggingChanges)
-			logInfo := loggingChanges.(*LoggingInfo)
-
-			// first pass is for Consul Decoder always sending data once watch has been setup. It hasn't actually changed
-			if loggingPass == 1 {
-				if !assert.Equal(t, logInfo.File, expectedConfig.Logging.File) {
-					t.Fatal()
-				}
-
-				// Make a change to logging
-				_ = client.PutConfigurationValue("Logging/File", []byte(expectedChange))
-
-				loggingPass--
-				continue
-			}
-
-			// Now the data should have changed
-			assert.Equal(t, logInfo.File, expectedChange)
-			updates++
-			if updates == 2 {
-				return
-			}
-
-		case serviceChanges := <-serviceUpdateChannel:
-			assert.NotNil(t, serviceChanges)
-			service := serviceChanges.(*types.ServiceEndpoint)
-
-			// first pass is for Consul Decoder always sending data once watch has been setup. It hasn't actually changed
-			if servicePass == 1 {
-				if !assert.Equal(t, service.Port, expectedConfig.Service.Port) {
-					t.Fatal()
-				}
-
-				// Make a change to logging
-				_ = client.PutConfigurationValue("Service/Host", []byte(expectedChange))
-
-				servicePass--
-				continue
-			}
-
-			// Now the data should have changed
-			assert.Equal(t, service.Host, expectedChange)
-			updates++
-			if updates == 2 {
-				return
-			}
-
-		case waitError := <-errorChannel:
-			t.Fatalf("received WatchForChanges error for Logging: %v", waitError)
-		}
 	}
 }
 
@@ -807,7 +318,6 @@ func makeConsulClient(t *testing.T, serviceName string, servicePort int, setServ
 	registryConfig := types.Config{
 		Host:          testHost,
 		Port:          port,
-		Stem:          "edgex/core/1.0/",
 		CheckInterval: "1s",
 		CheckRoute:    "/api/v1/ping",
 		ServiceKey:    serviceName,
@@ -824,35 +334,6 @@ func makeConsulClient(t *testing.T, serviceName string, servicePort int, setServ
 	}
 
 	return client
-}
-
-func createKeyValueMap() map[string]interface{} {
-	configMap := make(map[string]interface{})
-
-	configMap["int"] = int(1)
-	configMap["int64"] = int64(64)
-	configMap["float64"] = float64(1.4)
-	configMap["string"] = "hello"
-	configMap["bool"] = true
-
-	return configMap
-}
-
-func reset(t *testing.T, client *consulClient) {
-	// Make sure the configuration doesn't already exists
-	if mockConsul != nil {
-		mockConsul.Reset()
-	} else {
-		key := client.configBasePath
-		if strings.LastIndex(key, "/") == len(key)-1 {
-			key = key[:len(key)-1]
-		}
-
-		_, err := client.consulClient.KV().Delete(key, nil)
-		if !assert.NoError(t, err) {
-			t.Fatal()
-		}
-	}
 }
 
 func getUniqueServiceName() string {

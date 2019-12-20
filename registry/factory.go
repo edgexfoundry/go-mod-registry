@@ -18,6 +18,7 @@ package registry
 
 import (
 	"fmt"
+
 	"github.com/edgexfoundry/go-mod-registry/internal/pkg/consul"
 	"github.com/edgexfoundry/go-mod-registry/pkg/types"
 )
