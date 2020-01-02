@@ -296,6 +296,8 @@ func (client *consulClient) GetServiceEndpoint(serviceID string) (types.ServiceE
 		endpoint.Port = service.Port
 		endpoint.ServiceId = serviceID
 		endpoint.Host = service.Address
+	} else {
+		return types.ServiceEndpoint{}, fmt.Errorf("no matching service endpoint found")
 	}
 
 	return endpoint, nil
