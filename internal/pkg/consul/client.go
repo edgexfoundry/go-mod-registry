@@ -284,7 +284,8 @@ func (client *consulClient) PutConfigurationValue(name string, value []byte) err
 	return nil
 }
 
-// Gets the service endpoint information for the target ID from Consul
+// GetServiceEndpoint retrieves the port, service ID and host of a known endpoint from Consul.
+// If this operation is successful and a known endpoint is found, it is returned. Otherwise, an error is returned.
 func (client *consulClient) GetServiceEndpoint(serviceID string) (types.ServiceEndpoint, error) {
 	services, err := client.consulClient.Agent().Services()
 	if err != nil {
