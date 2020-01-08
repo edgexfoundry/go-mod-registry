@@ -248,7 +248,7 @@ func TestGetServiceEndpoint(t *testing.T) {
 
 	// Test for endpoint not found
 	actualEndpoint, err := client.GetServiceEndpoint(client.serviceKey)
-	if !assert.NoError(t, err) {
+	if !assert.Error(t, err) {
 		t.Fatal()
 	}
 	if !assert.Equal(t, expectedNotFoundEndpoint, actualEndpoint, "Test for endpoint not found result not as expected") {
