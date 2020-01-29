@@ -19,14 +19,14 @@ package registry
 import (
 	"testing"
 
-	"github.com/edgexfoundry/go-mod-registry/pkg/types"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/edgexfoundry/go-mod-registry/pkg/types"
 )
 
 var registryConfig = types.Config{
 	Host:        "localhost",
 	Port:        8500,
-	Stem:        "config",
 	ServiceKey:  "edgex-registry-tests",
 	ServiceHost: "localhost",
 	ServicePort: 8080,

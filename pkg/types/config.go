@@ -29,8 +29,6 @@ type Config struct {
 	Port int
 	// Type is the implementation type of the registry service, i.e. consul
 	Type string
-	// Stem is the base configuration path with in the registry
-	Stem string
 	// ServiceKey is the key identifying the service for Registration and building the services base configuration path.
 	ServiceKey string
 	// ServiceHost is the hostname or IP address of the current running service using this module. May be left empty if not using registration
