@@ -16,5 +16,5 @@
 
 edgeXBuildGoMod (
     project: 'go-mod-registry',
-    goVersion: '1.12'
+    goVersion: '1.13'
 )
