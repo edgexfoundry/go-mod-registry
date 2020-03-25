@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 
 	consulapi "github.com/hashicorp/consul/api"
 )
@@ -33,6 +34,7 @@ type MockConsul struct {
 	keyValueStore     map[string]*consulapi.KVPair
 	serviceStore      map[string]consulapi.AgentService
 	serviceCheckStore map[string]consulapi.AgentCheck
+	serviceLock       sync.Mutex
 }
 
 func NewMockConsul() *MockConsul {
@@ -43,32 +45,29 @@ func NewMockConsul() *MockConsul {
 	return &mock
 }
 
-var keyChannels map[string]chan bool
-var PrefixChannels map[string]chan bool
-
 func (mock *MockConsul) Start() *httptest.Server {
-	keyChannels = make(map[string]chan bool)
-	PrefixChannels = make(map[string]chan bool)
-
 	testMockServer := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		if strings.HasSuffix(request.URL.Path, "/v1/agent/service/register") {
 			switch request.Method {
 			case "PUT":
+				mock.serviceLock.Lock()
+				defer mock.serviceLock.Unlock()
+
 				body := make([]byte, request.ContentLength)
 				if _, err := io.ReadFull(request.Body, body); err != nil {
 					log.Printf("error reading request body: %s", err.Error())
 				}
-				//AgentServiceRegistration struct represents how service registration information is recieved
+				// AgentServiceRegistration struct represents how service registration information is recieved
 				var mockServiceRegister consulapi.AgentServiceRegistration
 
-				//AgentService struct represent how service information is store internally
+				// AgentService struct represent how service information is store internally
 				var mockService consulapi.AgentService
 				// unmarshal request body
 				if err := json.Unmarshal(body, &mockServiceRegister); err != nil {
 					log.Printf("error reading request body: %s", err.Error())
 				}
 
-				//Copying over basic fields required for current test cases.
+				// Copying over basic fields required for current test cases.
 				mockService.ID = mockServiceRegister.Name
 				mockService.Service = mockServiceRegister.Name
 				mockService.Address = mockServiceRegister.Address
@@ -82,6 +81,9 @@ func (mock *MockConsul) Start() *httptest.Server {
 		} else if strings.HasSuffix(request.URL.Path, "/v1/agent/services") {
 			switch request.Method {
 			case "GET":
+				mock.serviceLock.Lock()
+				defer mock.serviceLock.Unlock()
+
 				jsonData, _ := json.MarshalIndent(&mock.serviceStore, "", "  ")
 
 				writer.Header().Set("Content-Type", "application/json")
@@ -95,6 +97,9 @@ func (mock *MockConsul) Start() *httptest.Server {
 			key := strings.Replace(request.URL.Path, "/v1/agent/service/deregister/", "", 1)
 			switch request.Method {
 			case "PUT":
+				mock.serviceLock.Lock()
+				defer mock.serviceLock.Unlock()
+
 				_, ok := mock.serviceStore[key]
 				if ok {
 					delete(mock.serviceStore, key)
@@ -129,9 +134,12 @@ func (mock *MockConsul) Start() *httptest.Server {
 					log.Printf("error reading request body: %s", err.Error())
 				}
 
-				//if endpoint for health check is set, then try call the endpoint once after interval.
+				// if endpoint for health check is set, then try call the endpoint once after interval.
 				if healthCheck.AgentServiceCheck.HTTP != "" && healthCheck.AgentServiceCheck.Interval != "" {
 					go func() {
+						mock.serviceLock.Lock()
+						defer mock.serviceLock.Unlock()
+
 						check := consulapi.AgentCheck{
 							Node:        "Mock Consul server",
 							CheckID:     "Health Check: " + healthCheck.ServiceID,
@@ -173,6 +181,9 @@ func (mock *MockConsul) Start() *httptest.Server {
 		} else if strings.Contains(request.URL.Path, "/v1/health/checks") {
 			switch request.Method {
 			case "GET":
+				mock.serviceLock.Lock()
+				defer mock.serviceLock.Unlock()
+
 				agentChecks := make([]consulapi.AgentCheck, 0)
 				key := strings.Replace(request.URL.Path, "/v1/health/checks/", "", 1)
 				check, ok := mock.serviceCheckStore[key]
