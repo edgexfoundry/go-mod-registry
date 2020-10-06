@@ -104,6 +104,7 @@ func (client *consulClient) Register() error {
 
 	// Register for Health Check
 	err = client.consulClient.Agent().CheckRegister(&consulapi.AgentCheckRegistration{
+		ID:        client.serviceKey,
 		Name:      "Health Check: " + client.serviceKey,
 		Notes:     "Check the health of the API",
 		ServiceID: client.serviceKey,
