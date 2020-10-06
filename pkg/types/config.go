@@ -52,7 +52,11 @@ func (config Config) GetRegistryUrl() string {
 }
 
 func (config Config) GetHealthCheckUrl() string {
-	return fmt.Sprintf("%s://%s:%v%s", config.GetServiceProtocol(), config.ServiceHost, config.ServicePort, config.CheckRoute)
+	return config.GetExpandedRoute(config.CheckRoute)
+}
+
+func (config Config) GetExpandedRoute(route string) string {
+	return fmt.Sprintf("%s://%s:%v%s", config.GetServiceProtocol(), config.ServiceHost, config.ServicePort, route)
 }
 
 func (config Config) GetRegistryProtocol() string {

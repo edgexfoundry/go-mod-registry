@@ -18,6 +18,7 @@ package consul
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -133,7 +134,7 @@ func (mock *MockConsul) Start() *httptest.Server {
 				if err := json.Unmarshal(body, &healthCheck); err != nil {
 					log.Printf("error reading request body: %s", err.Error())
 				}
-
+				fmt.Println(fmt.Sprintf("%+v", healthCheck))
 				// if endpoint for health check is set, then try call the endpoint once after interval.
 				if healthCheck.AgentServiceCheck.HTTP != "" && healthCheck.AgentServiceCheck.Interval != "" {
 					go func() {
@@ -142,7 +143,7 @@ func (mock *MockConsul) Start() *httptest.Server {
 
 						check := consulapi.AgentCheck{
 							Node:        "Mock Consul server",
-							CheckID:     "Health Check: " + healthCheck.ServiceID,
+							CheckID:     healthCheck.ID,
 							Name:        "Health Check: " + healthCheck.ServiceID,
 							Status:      "TBD",
 							Output:      "TBD",
@@ -169,7 +170,7 @@ func (mock *MockConsul) Start() *httptest.Server {
 							}
 						}
 
-						mock.serviceCheckStore[healthCheck.ServiceID] = check
+						mock.serviceCheckStore[healthCheck.ID] = check
 
 					}()
 
@@ -177,6 +178,23 @@ func (mock *MockConsul) Start() *httptest.Server {
 
 				writer.Header().Set("Content-Type", "application/json")
 				writer.WriteHeader(http.StatusOK)
+			}
+		} else if strings.Contains(request.URL.Path, "/agent/check/deregister/") {
+			key := strings.Replace(request.URL.Path, "/v1/agent/check/deregister/", "", 1)
+			switch request.Method {
+			case "PUT":
+				mock.serviceLock.Lock()
+				defer mock.serviceLock.Unlock()
+				fmt.Println(key)
+				_, ok := mock.serviceCheckStore[key]
+				if ok {
+					delete(mock.serviceCheckStore, key)
+					writer.Header().Set("Content-Type", "application/json")
+					writer.WriteHeader(http.StatusOK)
+				} else {
+					writer.Header().Set("Content-Type", "application/json")
+					writer.WriteHeader(http.StatusBadRequest)
+				}
 			}
 		} else if strings.Contains(request.URL.Path, "/v1/health/checks") {
 			switch request.Method {

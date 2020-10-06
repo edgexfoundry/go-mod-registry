@@ -26,7 +26,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/edgexfoundry/go-mod-registry/pkg/types"
 )
@@ -77,9 +77,7 @@ func TestRegisterNoServiceInfoError(t *testing.T) {
 	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, false)
 
 	err := client.Register()
-	if !assert.Error(t, err, "Expected error due to no service info") {
-		t.Fatal()
-	}
+	require.Error(t, err, "Expected error due to no service info")
 }
 
 func TestRegisterWithPingCallback(t *testing.T) {
@@ -120,9 +118,7 @@ func TestRegisterWithPingCallback(t *testing.T) {
 
 	// Register the service endpoint and health check callback
 	err := client.Register()
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
+	require.NoError(t, err)
 
 	go func() {
 		time.Sleep(10 * time.Second)
@@ -130,7 +126,62 @@ func TestRegisterWithPingCallback(t *testing.T) {
 	}()
 
 	<-doneChan
-	assert.True(t, receivedPing, "Never received health check ping")
+	require.True(t, receivedPing, "Never received health check ping")
+}
+
+func TestRegisterCustomWithPingCallback(t *testing.T) {
+	doneChan := make(chan bool)
+	receivedPing := false
+
+	route := "/test/route"
+
+	// Setup a server to simulate the service for the health check callback
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if strings.Contains(request.URL.Path, route) {
+
+			switch request.Method {
+			case "GET":
+				receivedPing = true
+
+				writer.Header().Set("Content-Type", "text/plain")
+				_, _ = writer.Write([]byte("pong"))
+
+				doneChan <- true
+			}
+		}
+	}))
+	defer server.Close()
+
+	// Figure out which port the simulated service is running on.
+	serverUrl, _ := url.Parse(server.URL)
+	serverPort, _ := strconv.Atoi(serverUrl.Port())
+
+	client := makeConsulClient(t, getUniqueServiceName(), serverPort, true)
+	// Make sure service is not already registered.
+	_ = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
+	_ = client.consulClient.Agent().CheckDeregister(client.serviceKey)
+
+	// Try to clean-up after test
+	defer func(client *consulClient) {
+		_ = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
+		_ = client.consulClient.Agent().CheckDeregister(client.serviceKey)
+	}(client)
+
+	id := "check-id"
+	name := "check-name"
+
+	// Register the service endpoint and health check callback
+	err := client.RegisterCheck(id, name, "", route, "5s")
+
+	require.NoError(t, err)
+
+	go func() {
+		time.Sleep(10 * time.Second)
+		doneChan <- false
+	}()
+
+	<-doneChan
+	require.True(t, receivedPing, "Never received health check ping")
 }
 
 func TestUnregister(t *testing.T) {
@@ -141,19 +192,39 @@ func TestUnregister(t *testing.T) {
 	_ = client.consulClient.Agent().CheckDeregister(client.serviceKey)
 
 	err := client.Register()
-	if !assert.NoError(t, err, "Error registering service") {
-		t.Fatal()
-	}
+	require.NoError(t, err, "Error registering service")
 
 	err = client.Unregister()
-	if !assert.NoError(t, err, "Error un-registering service") {
-		t.Fatal()
-	}
+	require.NoError(t, err, "Error un-registering service")
 
 	_, err = client.GetServiceEndpoint(client.serviceKey)
-	if !assert.Error(t, err, "Expected error getting service endpoint") {
-		t.Fatal()
-	}
+	require.Error(t, err, "Expected error getting service endpoint")
+}
+
+func TestUnregisterCheck(t *testing.T) {
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
+
+	id := "check-id"
+
+	// Make sure service is not already registered.
+	_ = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
+	_ = client.consulClient.Agent().CheckDeregister(client.serviceKey)
+	_ = client.consulClient.Agent().CheckDeregister(id)
+
+	err := client.RegisterCheck(id, "", "", "", "15s")
+	require.NoError(t, err, "Error registering check")
+
+	err = client.UnregisterCheck(id)
+	require.NoError(t, err, "Error un-registering check")
+
+	err = client.UnregisterCheck("test")
+	require.Error(t, err, "Error un-registering check")
+
+	err = client.Unregister()
+	require.NoError(t, err, "Error un-registering service")
+
+	_, err = client.GetServiceEndpoint(client.serviceKey)
+	require.Error(t, err, "Expected error getting service endpoint")
 }
 
 func TestGetServiceEndpoint(t *testing.T) {
@@ -178,27 +249,19 @@ func TestGetServiceEndpoint(t *testing.T) {
 
 	// Test for endpoint not found
 	actualEndpoint, err := client.GetServiceEndpoint(client.serviceKey)
-	if !assert.Error(t, err) {
-		t.Fatal()
-	}
-	if !assert.Equal(t, expectedNotFoundEndpoint, actualEndpoint, "Test for endpoint not found result not as expected") {
-		t.Fatal()
-	}
+	require.Error(t, err)
+
+	require.Equal(t, expectedNotFoundEndpoint, actualEndpoint, "Test for endpoint not found result not as expected")
 
 	// Register the service endpoint
 	err = client.Register()
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
+	require.NoError(t, err)
 
 	// Test endpoint found
 	actualEndpoint, err = client.GetServiceEndpoint(client.serviceKey)
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
-	if !assert.Equal(t, expectedFoundEndpoint, actualEndpoint, "Test for endpoint found result not as expected") {
-		t.Fatal()
-	}
+	require.NoError(t, err)
+
+	require.Equal(t, expectedFoundEndpoint, actualEndpoint, "Test for endpoint found result not as expected")
 }
 
 func TestIsServiceAvailableNotRegistered(t *testing.T) {
@@ -211,14 +274,11 @@ func TestIsServiceAvailableNotRegistered(t *testing.T) {
 
 	actual, err := client.IsServiceAvailable(client.serviceKey)
 
-	if !assert.False(t, actual) {
-		t.Fatal()
-	}
+	require.False(t, actual)
 
-	if !assert.Error(t, err, "expected error") {
-		t.Fatal()
-	}
-	assert.Contains(t, err.Error(), "service is not registered", "Wrong error")
+	require.Error(t, err, "expected error")
+
+	require.Contains(t, err.Error(), "service is not registered", "Wrong error")
 }
 
 func TestIsServiceAvailableNotHealthy(t *testing.T) {
@@ -237,22 +297,17 @@ func TestIsServiceAvailableNotHealthy(t *testing.T) {
 
 	// Register the service endpoint, without test service to respond to health check
 	err := client.Register()
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
+	require.NoError(t, err)
 
 	// Give time for health check to run
 	time.Sleep(2 * time.Second)
 
 	actual, err := client.IsServiceAvailable(client.serviceKey)
-	if !assert.False(t, actual) {
-		t.Fatal()
-	}
-	if !assert.Error(t, err, "expected error") {
-		t.Fatal()
-	}
+	require.False(t, actual)
 
-	assert.Contains(t, err.Error(), "service not healthy", "Wrong error")
+	require.Error(t, err, "expected error")
+
+	require.Contains(t, err.Error(), "service not healthy", "Wrong error")
 }
 
 func TestIsServiceAvailableHealthy(t *testing.T) {
@@ -290,9 +345,7 @@ func TestIsServiceAvailableHealthy(t *testing.T) {
 
 	// Register the service endpoint
 	err := client.Register()
-	if !assert.NoError(t, err) {
-		t.Fatal()
-	}
+	require.NoError(t, err)
 
 	// Give time for health check to run
 	go func() {
@@ -301,17 +354,12 @@ func TestIsServiceAvailableHealthy(t *testing.T) {
 	}()
 
 	receivedPing := <-doneChan
-	if !assert.True(t, receivedPing, "Never received health check ping") {
-		t.Fatal()
-	}
+	require.True(t, receivedPing, "Never received health check ping")
 
 	actual, err := client.IsServiceAvailable(client.serviceKey)
-	if !assert.NoError(t, err, "IsServiceAvailable result not as expected") {
-		t.Fatal()
-	}
-	if !assert.True(t, actual, "IsServiceAvailable result not as expected") {
-		t.Fatal()
-	}
+	require.NoError(t, err, "IsServiceAvailable result not as expected")
+
+	require.True(t, actual, "IsServiceAvailable result not as expected")
 }
 
 func makeConsulClient(t *testing.T, serviceName string, servicePort int, setServiceInfo bool) *consulClient {
@@ -329,9 +377,7 @@ func makeConsulClient(t *testing.T, serviceName string, servicePort int, setServ
 	}
 
 	client, err := NewConsulClient(registryConfig)
-	if assert.NoError(t, err) == false {
-		t.Fatal()
-	}
+	require.NoError(t, err)
 
 	return client
 }
