@@ -27,6 +27,9 @@ type Client interface {
 	// Un-registers the current service with Registry for discover and health check
 	Unregister() error
 
+	// Registers a
+	RegisterCheck(id string, name string, notes string, url string, interval string) error
+
 	// Simply checks if Registry is up and running at the configured URL
 	IsAlive() bool
 

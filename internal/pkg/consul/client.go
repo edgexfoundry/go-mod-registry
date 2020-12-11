@@ -30,20 +30,23 @@ const consulStatusPath = "/v1/status/leader"
 const serviceStatusPass = "passing"
 
 type consulClient struct {
+	config              *types.Config
 	consulUrl           string
 	consulClient        *consulapi.Client
 	consulConfig        *consulapi.Config
 	serviceKey          string
 	serviceAddress      string
 	servicePort         int
-	healthCheckUrl      string
+	healthCheckRoute    string
 	healthCheckInterval string
+	registeredChecks    []string
 }
 
 // Create new Consul Client. Service details are optional, not needed just for configuration, but required if registering
 func NewConsulClient(registryConfig types.Config) (*consulClient, error) {
 
 	client := consulClient{
+		config:     &registryConfig,
 		serviceKey: registryConfig.ServiceKey,
 		consulUrl:  registryConfig.GetRegistryUrl(),
 	}
@@ -52,7 +55,7 @@ func NewConsulClient(registryConfig types.Config) (*consulClient, error) {
 	if registryConfig.ServiceHost != "" {
 		client.servicePort = registryConfig.ServicePort
 		client.serviceAddress = registryConfig.ServiceHost
-		client.healthCheckUrl = registryConfig.GetHealthCheckUrl()
+		client.healthCheckRoute = registryConfig.CheckRoute
 		client.healthCheckInterval = registryConfig.CheckInterval
 	}
 
@@ -87,7 +90,7 @@ func (client *consulClient) IsAlive() bool {
 // Registers the current service with Consul for discover and health check
 func (client *consulClient) Register() error {
 	if client.serviceKey == "" || client.serviceAddress == "" || client.servicePort == 0 ||
-		client.healthCheckUrl == "" || client.healthCheckInterval == "" {
+		client.healthCheckRoute == "" || client.healthCheckInterval == "" {
 		return fmt.Errorf("unable to register service with consul: Service information not set")
 	}
 
@@ -103,16 +106,9 @@ func (client *consulClient) Register() error {
 	}
 
 	// Register for Health Check
-	err = client.consulClient.Agent().CheckRegister(&consulapi.AgentCheckRegistration{
-		ID:        client.serviceKey,
-		Name:      "Health Check: " + client.serviceKey,
-		Notes:     "Check the health of the API",
-		ServiceID: client.serviceKey,
-		AgentServiceCheck: consulapi.AgentServiceCheck{
-			HTTP:     client.healthCheckUrl,
-			Interval: client.healthCheckInterval,
-		},
-	})
+	name := "Health Check: " + client.serviceKey
+	notes := "Check the health of the API"
+	err = client.RegisterCheck(client.serviceKey, name, notes, client.healthCheckRoute, client.healthCheckInterval)
 
 	if err != nil {
 		return err
@@ -121,13 +117,42 @@ func (client *consulClient) Register() error {
 	return nil
 }
 
+// Register check with consul
+func (client *consulClient) RegisterCheck(id string, name string, notes string, route string, interval string) error {
+	err := client.consulClient.Agent().CheckRegister(&consulapi.AgentCheckRegistration{
+		ID:        id,
+		Name:      name,
+		Notes:     notes,
+		ServiceID: client.serviceKey,
+		AgentServiceCheck: consulapi.AgentServiceCheck{
+			HTTP:     client.config.GetExpandedRoute(route),
+			Interval: interval,
+		},
+	})
+
+	if err != nil {
+		client.registeredChecks = append(client.registeredChecks, id)
+	}
+
+	return err
+}
+
+func (client *consulClient) UnregisterCheck(checkId string) error {
+	if err := client.consulClient.Agent().CheckDeregister(checkId); err != nil {
+		return fmt.Errorf("unable to de-register service health check with consul: %v", err)
+	}
+	return nil
+}
+
 func (client *consulClient) Unregister() error {
 	if err := client.consulClient.Agent().ServiceDeregister(client.serviceKey); err != nil {
 		return fmt.Errorf("unable to de-register service with consul: %v", err)
-
 	}
-	if err := client.consulClient.Agent().CheckDeregister(client.serviceKey); err != nil {
-		return fmt.Errorf("unable to de-register service health check with consul: %v", err)
+
+	for _, checkId := range client.registeredChecks {
+		if err := client.UnregisterCheck(checkId); err != nil {
+			return err
+		}
 	}
 
 	return nil
