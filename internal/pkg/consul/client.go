@@ -23,7 +23,7 @@ import (
 
 	consulapi "github.com/hashicorp/consul/api"
 
-	"github.com/edgexfoundry/go-mod-registry/pkg/types"
+	"github.com/edgexfoundry/go-mod-registry/v2/pkg/types"
 )
 
 const consulStatusPath = "/v1/status/leader"
