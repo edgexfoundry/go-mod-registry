@@ -62,6 +62,7 @@ func NewConsulClient(registryConfig types.Config) (*consulClient, error) {
 	var err error
 
 	client.consulConfig = consulapi.DefaultConfig()
+	client.consulConfig.Token = registryConfig.AccessToken
 	client.consulConfig.Address = client.consulUrl
 	client.consulClient, err = consulapi.NewClient(client.consulConfig)
 	if err != nil {

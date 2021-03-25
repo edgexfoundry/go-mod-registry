@@ -66,7 +66,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestIsAlive(t *testing.T) {
-	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true, "")
 	if !client.IsAlive() {
 		t.Fatal("Consul not running")
 	}
@@ -74,7 +74,7 @@ func TestIsAlive(t *testing.T) {
 
 func TestRegisterNoServiceInfoError(t *testing.T) {
 	// Don't set the service info so check for info results in error
-	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, false)
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, false, "")
 
 	err := client.Register()
 	require.Error(t, err, "Expected error due to no service info")
@@ -105,7 +105,7 @@ func TestRegisterWithPingCallback(t *testing.T) {
 	serverUrl, _ := url.Parse(server.URL)
 	serverPort, _ := strconv.Atoi(serverUrl.Port())
 
-	client := makeConsulClient(t, getUniqueServiceName(), serverPort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), serverPort, true, "")
 	// Make sure service is not already registered.
 	_ = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
 	_ = client.consulClient.Agent().CheckDeregister(client.serviceKey)
@@ -156,7 +156,7 @@ func TestRegisterCustomWithPingCallback(t *testing.T) {
 	serverUrl, _ := url.Parse(server.URL)
 	serverPort, _ := strconv.Atoi(serverUrl.Port())
 
-	client := makeConsulClient(t, getUniqueServiceName(), serverPort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), serverPort, true, "")
 	// Make sure service is not already registered.
 	_ = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
 	_ = client.consulClient.Agent().CheckDeregister(client.serviceKey)
@@ -185,7 +185,7 @@ func TestRegisterCustomWithPingCallback(t *testing.T) {
 }
 
 func TestUnregister(t *testing.T) {
-	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true, "")
 
 	// Make sure service is not already registered.
 	_ = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
@@ -202,7 +202,7 @@ func TestUnregister(t *testing.T) {
 }
 
 func TestUnregisterCheck(t *testing.T) {
-	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true, "")
 
 	id := "check-id"
 
@@ -227,6 +227,29 @@ func TestUnregisterCheck(t *testing.T) {
 	require.Error(t, err, "Expected error getting service endpoint")
 }
 
+func TestAccessToken(t *testing.T) {
+	uniqueServiceName := getUniqueServiceName()
+	client := makeConsulClient(t, uniqueServiceName, defaultServicePort, true, "")
+
+	// Test if have access to endpoint w/o access token set
+	err := client.Register()
+	require.NoError(t, err)
+
+	expectedToken := "MyAccessToken"
+	mockConsul.SetExpectedAccessToken(expectedToken)
+	defer mockConsul.ClearExpectedAccessToken()
+
+	// Now verify get error w/o providing the expected access token
+	err = client.Register()
+	require.Error(t, err)
+	require.EqualError(t, err, "Unexpected response code: 401 ()")
+
+	// Now verify not error when providing the expected access token
+	client = makeConsulClient(t, uniqueServiceName, defaultServicePort, true, expectedToken)
+	err = client.Register()
+	require.NoError(t, err)
+}
+
 func TestGetServiceEndpoint(t *testing.T) {
 	uniqueServiceName := getUniqueServiceName()
 	expectedNotFoundEndpoint := types.ServiceEndpoint{}
@@ -236,7 +259,7 @@ func TestGetServiceEndpoint(t *testing.T) {
 		Port:      defaultServicePort,
 	}
 
-	client := makeConsulClient(t, uniqueServiceName, defaultServicePort, true)
+	client := makeConsulClient(t, uniqueServiceName, defaultServicePort, true, "")
 	// Make sure service is not already registered.
 	_ = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
 	_ = client.consulClient.Agent().CheckDeregister(client.serviceKey)
@@ -266,7 +289,7 @@ func TestGetServiceEndpoint(t *testing.T) {
 
 func TestIsServiceAvailableNotRegistered(t *testing.T) {
 
-	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true, "")
 
 	// Make sure service is not already registered.
 	_ = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
@@ -283,7 +306,7 @@ func TestIsServiceAvailableNotRegistered(t *testing.T) {
 
 func TestIsServiceAvailableNotHealthy(t *testing.T) {
 
-	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), defaultServicePort, true, "")
 
 	// Make sure service is not already registered.
 	_ = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
@@ -332,7 +355,7 @@ func TestIsServiceAvailableHealthy(t *testing.T) {
 	serverUrl, _ := url.Parse(server.URL)
 	serverPort, _ := strconv.Atoi(serverUrl.Port())
 
-	client := makeConsulClient(t, getUniqueServiceName(), serverPort, true)
+	client := makeConsulClient(t, getUniqueServiceName(), serverPort, true, "")
 	// Make sure service is not already registered.
 	_ = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
 	_ = client.consulClient.Agent().CheckDeregister(client.serviceKey)
@@ -362,13 +385,14 @@ func TestIsServiceAvailableHealthy(t *testing.T) {
 	require.True(t, actual, "IsServiceAvailable result not as expected")
 }
 
-func makeConsulClient(t *testing.T, serviceName string, servicePort int, setServiceInfo bool) *consulClient {
+func makeConsulClient(t *testing.T, serviceName string, servicePort int, setServiceInfo bool, accessToken string) *consulClient {
 	registryConfig := types.Config{
 		Host:          testHost,
 		Port:          port,
 		CheckInterval: "1s",
 		CheckRoute:    "/api/v1/ping",
 		ServiceKey:    serviceName,
+		AccessToken:   accessToken,
 	}
 
 	if setServiceInfo {

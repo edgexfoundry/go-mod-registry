@@ -41,6 +41,9 @@ type Config struct {
 	CheckRoute string
 	// Health check callback interval. May be left empty if not using registration
 	CheckInterval string
+	// AccessToken is the optional ACL token for accessing the Registry. This token is only needed when the Registry has
+	// been secured with a ACL
+	AccessToken string
 }
 
 //

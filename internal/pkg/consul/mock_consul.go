@@ -29,25 +29,39 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 )
 
-const verbose = false
+const (
+	verbose  = false
+	TokenKey = "X-Consul-Token"
+)
 
 type MockConsul struct {
-	keyValueStore     map[string]*consulapi.KVPair
-	serviceStore      map[string]consulapi.AgentService
-	serviceCheckStore map[string]consulapi.AgentCheck
-	serviceLock       sync.Mutex
+	keyValueStore       map[string]*consulapi.KVPair
+	serviceStore        map[string]consulapi.AgentService
+	serviceCheckStore   map[string]consulapi.AgentCheck
+	serviceLock         sync.Mutex
+	expectedAccessToken string
 }
 
 func NewMockConsul() *MockConsul {
-	mock := MockConsul{}
-	mock.keyValueStore = make(map[string]*consulapi.KVPair)
-	mock.serviceStore = make(map[string]consulapi.AgentService)
-	mock.serviceCheckStore = make(map[string]consulapi.AgentCheck)
+	mock := MockConsul{
+		keyValueStore:     make(map[string]*consulapi.KVPair),
+		serviceStore:      make(map[string]consulapi.AgentService),
+		serviceCheckStore: make(map[string]consulapi.AgentCheck),
+	}
+
 	return &mock
 }
 
 func (mock *MockConsul) Start() *httptest.Server {
 	testMockServer := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if len(mock.expectedAccessToken) > 0 {
+			token := request.Header.Get(TokenKey)
+			if token != mock.expectedAccessToken {
+				writer.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+		}
+
 		if strings.HasSuffix(request.URL.Path, "/v1/agent/service/register") {
 			switch request.Method {
 			case "PUT":
@@ -58,7 +72,7 @@ func (mock *MockConsul) Start() *httptest.Server {
 				if _, err := io.ReadFull(request.Body, body); err != nil {
 					log.Printf("error reading request body: %s", err.Error())
 				}
-				// AgentServiceRegistration struct represents how service registration information is recieved
+				// AgentServiceRegistration struct represents how service registration information is received
 				var mockServiceRegister consulapi.AgentServiceRegistration
 
 				// AgentService struct represent how service information is store internally
@@ -221,4 +235,12 @@ func (mock *MockConsul) Start() *httptest.Server {
 	}))
 
 	return testMockServer
+}
+
+func (mock *MockConsul) SetExpectedAccessToken(token string) {
+	mock.expectedAccessToken = token
+}
+
+func (mock *MockConsul) ClearExpectedAccessToken() {
+	mock.expectedAccessToken = ""
 }
