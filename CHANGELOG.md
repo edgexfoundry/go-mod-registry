@@ -2,7 +2,7 @@
 ## Registry Module (in Go)
 [Github repository](https://github.com/edgexfoundry/go-mod-registry)
 
-## [2.0.0] - 2021-06-10
+## [2.0.0] - 2021-06-30
 ### Features ✨
 - **security:** Add ability to provide ACL AccessToken ([#5a93214](https://github.com/edgexfoundry/go-mod-registry/commits/5a93214))
 
