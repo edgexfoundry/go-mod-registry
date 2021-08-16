@@ -179,6 +179,25 @@ func (client *consulClient) GetServiceEndpoint(serviceID string) (types.ServiceE
 	return endpoint, nil
 }
 
+//GetAllServiceEndpoints retrieves all registered endpoints from Consul.
+func (client *consulClient) GetAllServiceEndpoints() ([]types.ServiceEndpoint, error) {
+	services, err := client.consulClient.Agent().Services()
+	if err != nil {
+		return nil, err
+	}
+
+	var endpoints []types.ServiceEndpoint
+	for _, service := range services {
+		svc := types.ServiceEndpoint{}
+		svc.Port = service.Port
+		svc.ServiceId = service.ID
+		svc.Host = service.Address
+		endpoints = append(endpoints, svc)
+	}
+
+	return endpoints, nil
+}
+
 // Checks with Consul if the target service is registered and healthy
 func (client *consulClient) IsServiceAvailable(serviceKey string) (bool, error) {
 	services, err := client.consulClient.Agent().Services()
