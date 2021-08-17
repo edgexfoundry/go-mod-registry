@@ -36,6 +36,9 @@ type Client interface {
 	// Gets the service endpoint information for the target ID from the Registry
 	GetServiceEndpoint(serviceId string) (types.ServiceEndpoint, error)
 
+	// Gets all the service endpoints information from the Registry
+	GetAllServiceEndpoints() ([]types.ServiceEndpoint, error)
+
 	// Checks with the Registry if the target service is available, i.e. registered and healthy
 	IsServiceAvailable(serviceId string) (bool, error)
 }
