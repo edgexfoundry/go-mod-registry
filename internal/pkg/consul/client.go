@@ -19,6 +19,7 @@ package consul
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
@@ -26,8 +27,11 @@ import (
 	"github.com/edgexfoundry/go-mod-registry/v2/pkg/types"
 )
 
-const consulStatusPath = "/v1/status/leader"
-const serviceStatusPass = "passing"
+const (
+	consulStatusPath  = "/v1/status/leader"
+	serviceStatusPass = "passing"
+	aclError          = "Unexpected response code: 403"
+)
 
 type consulClient struct {
 	config              *types.Config
@@ -40,15 +44,17 @@ type consulClient struct {
 	healthCheckRoute    string
 	healthCheckInterval string
 	registeredChecks    []string
+	getAccessToken      types.GetAccessTokenCallback
 }
 
 // Create new Consul Client. Service details are optional, not needed just for configuration, but required if registering
 func NewConsulClient(registryConfig types.Config) (*consulClient, error) {
 
 	client := consulClient{
-		config:     &registryConfig,
-		serviceKey: registryConfig.ServiceKey,
-		consulUrl:  registryConfig.GetRegistryUrl(),
+		config:         &registryConfig,
+		serviceKey:     registryConfig.ServiceKey,
+		consulUrl:      registryConfig.GetRegistryUrl(),
+		getAccessToken: registryConfig.GetAccessToken,
 	}
 
 	// ServiceHost will be empty when client isn't registering the service
@@ -76,6 +82,7 @@ func NewConsulClient(registryConfig types.Config) (*consulClient, error) {
 func (client *consulClient) IsAlive() bool {
 	netClient := http.Client{Timeout: time.Second * 10}
 
+	// This REST endpoint doesn't require Access Token, so no need to handle Auth Error.
 	resp, err := netClient.Get(client.consulUrl + consulStatusPath)
 	if err != nil {
 		return false
@@ -95,12 +102,20 @@ func (client *consulClient) Register() error {
 		return fmt.Errorf("unable to register service with consul: Service information not set")
 	}
 
-	// Register for service discovery
-	err := client.consulClient.Agent().ServiceRegister(&consulapi.AgentServiceRegistration{
+	registration := &consulapi.AgentServiceRegistration{
 		Name:    client.serviceKey,
 		Address: client.serviceAddress,
 		Port:    client.servicePort,
-	})
+	}
+
+	// Register for service discovery
+	err := client.consulClient.Agent().ServiceRegister(registration)
+
+	retry, err := client.reloadAccessTokenOnAuthError(err)
+	if retry {
+		// Try again with new Access Token
+		err = client.consulClient.Agent().ServiceRegister(registration)
+	}
 
 	if err != nil {
 		return err
@@ -120,7 +135,7 @@ func (client *consulClient) Register() error {
 
 // Register check with consul
 func (client *consulClient) RegisterCheck(id string, name string, notes string, route string, interval string) error {
-	err := client.consulClient.Agent().CheckRegister(&consulapi.AgentCheckRegistration{
+	registration := &consulapi.AgentCheckRegistration{
 		ID:        id,
 		Name:      name,
 		Notes:     notes,
@@ -129,7 +144,15 @@ func (client *consulClient) RegisterCheck(id string, name string, notes string, 
 			HTTP:     client.config.GetExpandedRoute(route),
 			Interval: interval,
 		},
-	})
+	}
+
+	err := client.consulClient.Agent().CheckRegister(registration)
+
+	retry, err := client.reloadAccessTokenOnAuthError(err)
+	if retry {
+		// Try again with new Access Token
+		err = client.consulClient.Agent().CheckRegister(registration)
+	}
 
 	if err != nil {
 		client.registeredChecks = append(client.registeredChecks, id)
@@ -139,14 +162,30 @@ func (client *consulClient) RegisterCheck(id string, name string, notes string, 
 }
 
 func (client *consulClient) UnregisterCheck(checkId string) error {
-	if err := client.consulClient.Agent().CheckDeregister(checkId); err != nil {
+	err := client.consulClient.Agent().CheckDeregister(checkId)
+
+	retry, err := client.reloadAccessTokenOnAuthError(err)
+	if retry {
+		// Try again with new Access Token
+		err = client.consulClient.Agent().CheckDeregister(checkId)
+	}
+
+	if err != nil {
 		return fmt.Errorf("unable to de-register service health check with consul: %v", err)
 	}
 	return nil
 }
 
 func (client *consulClient) Unregister() error {
-	if err := client.consulClient.Agent().ServiceDeregister(client.serviceKey); err != nil {
+	err := client.consulClient.Agent().ServiceDeregister(client.serviceKey)
+
+	retry, err := client.reloadAccessTokenOnAuthError(err)
+	if retry {
+		// Try again with new Access Token
+		err = client.consulClient.Agent().ServiceDeregister(client.serviceKey)
+	}
+
+	if err != nil {
 		return fmt.Errorf("unable to de-register service with consul: %v", err)
 	}
 
@@ -163,6 +202,13 @@ func (client *consulClient) Unregister() error {
 // If this operation is successful and a known endpoint is found, it is returned. Otherwise, an error is returned.
 func (client *consulClient) GetServiceEndpoint(serviceID string) (types.ServiceEndpoint, error) {
 	services, err := client.consulClient.Agent().Services()
+
+	retry, err := client.reloadAccessTokenOnAuthError(err)
+	if retry {
+		// Try again with new Access Token
+		services, err = client.consulClient.Agent().Services()
+	}
+
 	if err != nil {
 		return types.ServiceEndpoint{}, err
 	}
@@ -182,6 +228,13 @@ func (client *consulClient) GetServiceEndpoint(serviceID string) (types.ServiceE
 //GetAllServiceEndpoints retrieves all registered endpoints from Consul.
 func (client *consulClient) GetAllServiceEndpoints() ([]types.ServiceEndpoint, error) {
 	services, err := client.consulClient.Agent().Services()
+
+	retry, err := client.reloadAccessTokenOnAuthError(err)
+	if retry {
+		// Try again with new Access Token
+		services, err = client.consulClient.Agent().Services()
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -201,6 +254,13 @@ func (client *consulClient) GetAllServiceEndpoints() ([]types.ServiceEndpoint, e
 // Checks with Consul if the target service is registered and healthy
 func (client *consulClient) IsServiceAvailable(serviceKey string) (bool, error) {
 	services, err := client.consulClient.Agent().Services()
+
+	retry, err := client.reloadAccessTokenOnAuthError(err)
+	if retry {
+		// Try again with new Access Token
+		services, err = client.consulClient.Agent().Services()
+	}
+
 	if err != nil {
 		return false, fmt.Errorf("unable to check if service %s is available: %v", serviceKey, err)
 	}
@@ -224,4 +284,30 @@ func (client *consulClient) IsServiceAvailable(serviceKey string) (bool, error) 
 	}
 
 	return true, nil
+}
+
+func (client *consulClient) reloadAccessTokenOnAuthError(err error) (bool, error) {
+	if err == nil {
+		return false, nil
+	}
+
+	if strings.Contains(err.Error(), aclError) && client.getAccessToken != nil {
+		newToken, err := client.getAccessToken()
+		if err != nil {
+			err = fmt.Errorf("failed to renew access token: %s", err.Error())
+			return false, err
+		}
+
+		client.consulConfig.Token = newToken
+
+		// Have to recreate the consul client with the new Access Token
+		client.consulClient, err = consulapi.NewClient(client.consulConfig)
+		if err != nil {
+			return false, fmt.Errorf("unable for create new Consul Client for %s: %v", client.consulUrl, err)
+		}
+
+		return true, nil
+	}
+
+	return false, err
 }
