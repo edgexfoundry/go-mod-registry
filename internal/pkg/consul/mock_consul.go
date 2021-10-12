@@ -56,8 +56,8 @@ func (mock *MockConsul) Start() *httptest.Server {
 	testMockServer := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		if len(mock.expectedAccessToken) > 0 {
 			token := request.Header.Get(TokenKey)
-			if token != mock.expectedAccessToken {
-				writer.WriteHeader(http.StatusUnauthorized)
+			if len(mock.expectedAccessToken) > 0 && token != mock.expectedAccessToken {
+				writer.WriteHeader(http.StatusForbidden)
 				return
 			}
 		}
