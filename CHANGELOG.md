@@ -1,8 +1,21 @@
 <a name="Registry Go Mod Changelog"></a>
+
 ## Registry Module (in Go)
 [Github repository](https://github.com/edgexfoundry/go-mod-registry)
 
-## [2.0.0] - 2021-06-30
+## [v2.1.0] - 2021-11-17
+
+### Test
+
+- Update Client interface mock for unit test (GetAllServiceEndpoints) ([#9d684a7](https://github.com/edgexfoundry/go-mod-registry/commits/9d684a7))
+
+### Features ✨
+
+- Add Renew Access Token capability ([#d344f9d](https://github.com/edgexfoundry/go-mod-registry/commits/d344f9d))
+- Add the new GetAllServiceEndpoints API to the Client interface ([#c5087a8](https://github.com/edgexfoundry/go-mod-registry/commits/c5087a8))
+- Add new GetAllServiceEndpoints method to retrieve all registered service endpoints from consul ([#d798a43](https://github.com/edgexfoundry/go-mod-registry/commits/d798a43))
+
+## [v2.0.0] - 2021-06-30
 ### Features ✨
 - **security:** Add ability to provide ACL AccessToken ([#5a93214](https://github.com/edgexfoundry/go-mod-registry/commits/5a93214))
 
