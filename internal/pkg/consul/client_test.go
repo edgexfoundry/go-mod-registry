@@ -253,8 +253,8 @@ func TestAccessToken(t *testing.T) {
 }
 
 func TestRenewAccessToken(t *testing.T) {
-	goodToken := "bfb78dc5-c6a3-33d9-88b5-e3a4b63dda77"
-	badToken := "badToken-c6a3-33d9-88b5-e3a4b63dda77"
+	goodToken := "bfb78dc5-c6a3-33d9-88b5-e3a4b63dda77" // nolint: gosec
+	badToken := "badToken-c6a3-33d9-88b5-e3a4b63dda77"  // nolint: gosec
 	serviceName := "RenewAccessToken-Test"
 
 	renewCalled := false
