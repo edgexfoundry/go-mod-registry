@@ -31,7 +31,7 @@ import (
 
 const (
 	verbose  = false
-	TokenKey = "X-Consul-Token"
+	TokenKey = "X-Consul-Token" // nolint: gosec
 )
 
 type MockConsul struct {
@@ -148,7 +148,7 @@ func (mock *MockConsul) Start() *httptest.Server {
 				if err := json.Unmarshal(body, &healthCheck); err != nil {
 					log.Printf("error reading request body: %s", err.Error())
 				}
-				fmt.Println(fmt.Sprintf("%+v", healthCheck))
+				fmt.Printf("%+v\n", healthCheck)
 				// if endpoint for health check is set, then try call the endpoint once after interval.
 				if healthCheck.AgentServiceCheck.HTTP != "" && healthCheck.AgentServiceCheck.Interval != "" {
 					go func() {
