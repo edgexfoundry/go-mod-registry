@@ -1,5 +1,6 @@
 .PHONY: test unittest lint
 
+ARCH=$(shell uname -m)
 GO=CGO_ENABLED=0 GO111MODULE=on go
 
 tidy:
