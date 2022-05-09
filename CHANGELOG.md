@@ -3,6 +3,15 @@
 ## Registry Module (in Go)
 [Github repository](https://github.com/edgexfoundry/go-mod-registry)
 
+## [v2.2.0] - 2022-05-11
+
+### Features ✨
+
+- None
+
+### Build 🔄
+
+- **security:** Enable gosec and default linter set ([#4863bf5](https://github.com/edgexfoundry/go-mod-registry/commits/4863bf5))
 ## [v2.1.0] - 2021-11-17
 
 ### Test
