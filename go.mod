@@ -2,7 +2,7 @@ module github.com/edgexfoundry/go-mod-registry/v2
 
 require (
 	github.com/hashicorp/consul/api v1.13.0
-	github.com/stretchr/testify v1.7.2
+	github.com/stretchr/testify v1.7.3
 )
 
 require (
@@ -20,7 +20,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/stretchr/objx v0.1.0 // indirect
+	github.com/stretchr/objx v0.4.0 // indirect
 	golang.org/x/sys v0.0.0-20210330210617-4fbd30eecc44 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
