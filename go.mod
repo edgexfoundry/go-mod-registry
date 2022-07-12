@@ -1,5 +1,7 @@
 module github.com/edgexfoundry/go-mod-registry/v2
 
+go 1.18
+
 require (
 	github.com/hashicorp/consul/api v1.13.0
 	github.com/stretchr/testify v1.8.0
@@ -24,5 +26,3 @@ require (
 	golang.org/x/sys v0.0.0-20210330210617-4fbd30eecc44 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-go 1.17
