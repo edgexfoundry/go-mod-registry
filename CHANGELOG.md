@@ -3,6 +3,16 @@
 ## Registry Module (in Go)
 [Github repository](https://github.com/edgexfoundry/go-mod-registry)
 
+## [v2.3.0] - 2022-11-09
+
+### Features ✨
+
+- None
+
+### Build 👷
+
+- Upgrade to Go 1.18 ([#7102501](https://github.com/edgexfoundry/go-mod-registry/commits/7102501))
+
 ## [v2.2.0] - 2022-05-11
 
 ### Features ✨
