@@ -24,7 +24,7 @@ import (
 
 	consulapi "github.com/hashicorp/consul/api"
 
-	"github.com/edgexfoundry/go-mod-registry/v2/pkg/types"
+	"github.com/edgexfoundry/go-mod-registry/v3/pkg/types"
 )
 
 const (
@@ -225,7 +225,7 @@ func (client *consulClient) GetServiceEndpoint(serviceID string) (types.ServiceE
 	return endpoint, nil
 }
 
-//GetAllServiceEndpoints retrieves all registered endpoints from Consul.
+// GetAllServiceEndpoints retrieves all registered endpoints from Consul.
 func (client *consulClient) GetAllServiceEndpoints() ([]types.ServiceEndpoint, error) {
 	services, err := client.consulClient.Agent().Services()
 

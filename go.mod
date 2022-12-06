@@ -1,4 +1,4 @@
-module github.com/edgexfoundry/go-mod-registry/v2
+module github.com/edgexfoundry/go-mod-registry/v3
 
 go 1.18
 
