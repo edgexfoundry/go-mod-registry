@@ -1,6 +1,6 @@
 module github.com/edgexfoundry/go-mod-registry/v3
 
-go 1.18
+go 1.20
 
 require (
 	github.com/hashicorp/consul/api v1.19.1
