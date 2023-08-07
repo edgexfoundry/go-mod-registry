@@ -3,7 +3,7 @@ module github.com/edgexfoundry/go-mod-registry/v3
 go 1.20
 
 require (
-	github.com/hashicorp/consul/api v1.23.0
+	github.com/hashicorp/consul/api v1.24.0
 	github.com/stretchr/testify v1.8.4
 )
 
