@@ -18,11 +18,8 @@ package consul
 
 import (
 	"fmt"
-	"net/http"
-	"strings"
-	"time"
-
 	consulapi "github.com/hashicorp/consul/api"
+	"strings"
 
 	"github.com/edgexfoundry/go-mod-registry/v3/pkg/types"
 )
@@ -80,18 +77,18 @@ func NewConsulClient(registryConfig types.Config) (*consulClient, error) {
 
 // Simply checks if Consul is up and running at the configured URL
 func (client *consulClient) IsAlive() bool {
-	netClient := http.Client{Timeout: time.Second * 10}
-
-	// This REST endpoint doesn't require Access Token, so no need to handle Auth Error.
-	resp, err := netClient.Get(client.consulUrl + consulStatusPath)
-	if err != nil {
-		return false
-	}
-
-	if resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices {
+	_, err := client.consulClient.Status().Leader()
+	if err == nil {
 		return true
 	}
-
+	//When the leader query interface is called, the returned data is not in json format. For example,
+	//string data of localhost:8000 is returned, but the default json format is parsed.
+	//If an error is reported when parsing the json format, it is considered to be in line with expectations.
+	if err != nil {
+		if strings.Contains(err.Error(), "looking for beginning of value") {
+			return true
+		}
+	}
 	return false
 }
 
