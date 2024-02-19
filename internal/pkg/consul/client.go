@@ -89,6 +89,7 @@ func (client *consulClient) IsAlive() bool {
 		if strings.Contains(err.Error(), "looking for beginning of value") {
 			return true
 		}
+
 	}
 	return false
 }
