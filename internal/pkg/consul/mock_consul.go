@@ -133,7 +133,7 @@ func (mock *MockConsul) Start() *httptest.Server {
 			case "GET":
 				writer.Header().Set("Content-Type", "application/json")
 				writer.WriteHeader(http.StatusOK)
-
+				writer.Write([]byte("localhost:8000"))
 			}
 
 		} else if strings.Contains(request.URL.Path, "/agent/check/register") {
