@@ -16,7 +16,11 @@
 
 package types
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/edgexfoundry/go-mod-core-contracts/v3/clients/interfaces"
+)
 
 type GetAccessTokenCallback func() (string, error)
 
@@ -49,6 +53,12 @@ type Config struct {
 	// GetAccessToken is a callback function that retrieves a new Access Token.
 	// This callback is used when a '403 Forbidden' status is received from any call to the configuration provider service.
 	GetAccessToken GetAccessTokenCallback
+	// AuthInjector is an interface to obtain a JWT and secure transport for remote service calls
+	AuthInjector interfaces.AuthenticationInjector
+	// EnableNameFieldEscape indicates whether enables NameFieldEscape in this service
+	// The name field escape could allow the system to use special or Chinese characters in the different name fields, including device, profile, and so on.  If the EnableNameFieldEscape is false, some special characters might cause system error.
+	// TODO: remove in EdgeX 4.0
+	EnableNameFieldEscape bool
 }
 
 //

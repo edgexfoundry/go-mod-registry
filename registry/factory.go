@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2019 Intel Corporation
+// Copyright (C) 2024 IOTech Ltd
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/edgexfoundry/go-mod-registry/v3/internal/pkg/consul"
+	"github.com/edgexfoundry/go-mod-registry/v3/internal/pkg/keeper"
 	"github.com/edgexfoundry/go-mod-registry/v3/pkg/types"
 )
 
@@ -31,8 +33,10 @@ func NewRegistryClient(registryConfig types.Config) (Client, error) {
 
 	switch registryConfig.Type {
 	case "consul":
-		var err error
 		registryClient, err := consul.NewConsulClient(registryConfig)
+		return registryClient, err
+	case "keeper":
+		registryClient, err := keeper.NewKeeperClient(registryConfig)
 		return registryClient, err
 	default:
 		return nil, fmt.Errorf("unknown registry type '%s' requested", registryConfig.Type)
