@@ -20,8 +20,8 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/edgexfoundry/go-mod-core-contracts/v3 v3.2.0-dev.17 h1:qvBv2HFRVhYEXZImqbXiH17tGPJnQhzoqau6bTyCCZM=
-github.com/edgexfoundry/go-mod-core-contracts/v3 v3.2.0-dev.17/go.mod h1:fbgHRN/2/xlFrekMipRcr8DsADwt13eaghToFB5uvSc=
+github.com/edgexfoundry/go-mod-core-contracts/v3 v3.2.0-dev.18 h1:YFvtIx2MhF0L7ADXFEFq+tTZNrCQFKjQZVxGikEDwgs=
+github.com/edgexfoundry/go-mod-core-contracts/v3 v3.2.0-dev.18/go.mod h1:fbgHRN/2/xlFrekMipRcr8DsADwt13eaghToFB5uvSc=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/fatih/color v1.9.0/go.mod h1:eQcE1qtQxscV5RaZvpXrrb8Drkc3/DdQ+uUYCNjL+zU=
 github.com/fatih/color v1.13.0/go.mod h1:kLAiJbzzSOZDVNGyDpeOxJ47H46qBXwg5ILebYFFOfk=
