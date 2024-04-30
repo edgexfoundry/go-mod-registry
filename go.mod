@@ -3,7 +3,7 @@ module github.com/edgexfoundry/go-mod-registry/v3
 go 1.21
 
 require (
-	github.com/edgexfoundry/go-mod-core-contracts/v3 v3.2.0-dev.17
+	github.com/edgexfoundry/go-mod-core-contracts/v3 v3.2.0-dev.18
 	github.com/hashicorp/consul/api v1.27.0
 	github.com/stretchr/testify v1.9.0
 )
