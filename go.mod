@@ -3,7 +3,7 @@ module github.com/edgexfoundry/go-mod-registry/v3
 go 1.21
 
 require (
-	github.com/edgexfoundry/go-mod-core-contracts/v3 v3.2.0-dev.18
+	github.com/edgexfoundry/go-mod-core-contracts/v3 v3.2.0-dev.20
 	github.com/hashicorp/consul/api v1.27.0
 	github.com/stretchr/testify v1.9.0
 )
@@ -16,7 +16,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.19.0 // indirect
+	github.com/go-playground/validator/v10 v10.20.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
