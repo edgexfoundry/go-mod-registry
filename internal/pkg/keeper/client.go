@@ -91,7 +91,7 @@ func (k *keeperClient) Register() error {
 
 	// check if the service registry exists first
 	resp, err := k.registryClient.RegistrationByServiceId(context.Background(), k.serviceKey)
-	if err != nil && resp.StatusCode != http.StatusNotFound {
+	if err != nil && err.Code() != http.StatusNotFound {
 		return fmt.Errorf("failed to check the %s service registry status: %v", k.serviceKey, err)
 	}
 
@@ -191,7 +191,7 @@ func (k *keeperClient) GetAllServiceEndpoints() ([]types.ServiceEndpoint, error)
 // IsServiceAvailable checks with Keeper if the target service is registered and healthy
 func (k *keeperClient) IsServiceAvailable(serviceKey string) (bool, error) {
 	resp, err := k.registryClient.RegistrationByServiceId(context.Background(), serviceKey)
-	if err != nil && resp.StatusCode != http.StatusNotFound {
+	if err != nil && err.Code() != http.StatusNotFound {
 		return false, fmt.Errorf("failed to get %s service registry: %v", serviceKey, err)
 	}
 
