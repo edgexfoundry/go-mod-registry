@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/edgexfoundry/go-mod-core-contracts/v3 v3.2.0-dev.30
-	github.com/hashicorp/consul/api v1.29.3
+	github.com/hashicorp/consul/api v1.29.4
 	github.com/stretchr/testify v1.9.0
 )
 
