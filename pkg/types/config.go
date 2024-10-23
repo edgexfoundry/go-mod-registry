@@ -19,7 +19,7 @@ package types
 import (
 	"fmt"
 
-	"github.com/edgexfoundry/go-mod-core-contracts/v3/clients/interfaces"
+	"github.com/edgexfoundry/go-mod-core-contracts/v4/clients/interfaces"
 )
 
 type GetAccessTokenCallback func() (string, error)
