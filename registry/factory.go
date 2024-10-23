@@ -20,9 +20,9 @@ package registry
 import (
 	"fmt"
 
-	"github.com/edgexfoundry/go-mod-registry/v3/internal/pkg/consul"
-	"github.com/edgexfoundry/go-mod-registry/v3/internal/pkg/keeper"
-	"github.com/edgexfoundry/go-mod-registry/v3/pkg/types"
+	"github.com/edgexfoundry/go-mod-registry/v4/internal/pkg/consul"
+	"github.com/edgexfoundry/go-mod-registry/v4/internal/pkg/keeper"
+	"github.com/edgexfoundry/go-mod-registry/v4/pkg/types"
 )
 
 func NewRegistryClient(registryConfig types.Config) (Client, error) {

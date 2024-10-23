@@ -1,9 +1,9 @@
-module github.com/edgexfoundry/go-mod-registry/v3
+module github.com/edgexfoundry/go-mod-registry/v4
 
 go 1.23
 
 require (
-	github.com/edgexfoundry/go-mod-core-contracts/v3 v3.2.0-dev.49
+	github.com/edgexfoundry/go-mod-core-contracts/v4 v4.0.0-dev.1
 	github.com/hashicorp/consul/api v1.29.4
 	github.com/stretchr/testify v1.9.0
 )

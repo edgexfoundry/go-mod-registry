@@ -24,7 +24,7 @@ import (
 
 	consulapi "github.com/hashicorp/consul/api"
 
-	"github.com/edgexfoundry/go-mod-registry/v3/pkg/types"
+	"github.com/edgexfoundry/go-mod-registry/v4/pkg/types"
 )
 
 const (
