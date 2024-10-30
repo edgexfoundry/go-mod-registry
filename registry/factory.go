@@ -20,7 +20,6 @@ package registry
 import (
 	"fmt"
 
-	"github.com/edgexfoundry/go-mod-registry/v4/internal/pkg/consul"
 	"github.com/edgexfoundry/go-mod-registry/v4/internal/pkg/keeper"
 	"github.com/edgexfoundry/go-mod-registry/v4/pkg/types"
 )
@@ -28,13 +27,10 @@ import (
 func NewRegistryClient(registryConfig types.Config) (Client, error) {
 
 	if registryConfig.Host == "" || registryConfig.Port == 0 {
-		return nil, fmt.Errorf("unable to create ConsulClient: registry host and/or port or serviceKey not set")
+		return nil, fmt.Errorf("unable to create RegistryClient: registry host and/or port or serviceKey not set")
 	}
 
 	switch registryConfig.Type {
-	case "consul":
-		registryClient, err := consul.NewConsulClient(registryConfig)
-		return registryClient, err
 	case "keeper":
 		registryClient, err := keeper.NewKeeperClient(registryConfig)
 		return registryClient, err

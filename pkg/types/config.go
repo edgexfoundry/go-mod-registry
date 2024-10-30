@@ -22,8 +22,6 @@ import (
 	"github.com/edgexfoundry/go-mod-core-contracts/v4/clients/interfaces"
 )
 
-type GetAccessTokenCallback func() (string, error)
-
 // Config defines the information need to connect to the registry service and optionally register the service
 // for discovery and health checks
 type Config struct {
@@ -33,7 +31,7 @@ type Config struct {
 	Host string
 	// Port is the HTTP port of the registry service
 	Port int
-	// Type is the implementation type of the registry service, i.e. consul
+	// Type is the implementation type of the registry service, i.e. keeper
 	Type string
 	// ServiceKey is the key identifying the service for Registration and building the services base configuration path.
 	ServiceKey string
@@ -47,12 +45,6 @@ type Config struct {
 	CheckRoute string
 	// Health check callback interval. May be left empty if not using registration
 	CheckInterval string
-	// AccessToken is the optional ACL token for accessing the Registry. This token is only needed when the Registry has
-	// been secured with a ACL
-	AccessToken string
-	// GetAccessToken is a callback function that retrieves a new Access Token.
-	// This callback is used when a '403 Forbidden' status is received from any call to the configuration provider service.
-	GetAccessToken GetAccessTokenCallback
 	// AuthInjector is an interface to obtain a JWT and secure transport for remote service calls
 	AuthInjector interfaces.AuthenticationInjector
 	// EnableNameFieldEscape indicates whether enables NameFieldEscape in this service
