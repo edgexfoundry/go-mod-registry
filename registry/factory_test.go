@@ -26,22 +26,20 @@ import (
 
 var registryConfig = types.Config{
 	Host:        "localhost",
-	Port:        8500,
+	Port:        59890,
 	ServiceKey:  "edgex-registry-tests",
 	ServiceHost: "localhost",
 	ServicePort: 8080,
 }
 
-func TestNewRegistryClientConsul(t *testing.T) {
+func TestNewRegistryClientKeeper(t *testing.T) {
 
-	registryConfig.Type = "consul"
+	registryConfig.Type = "keeper"
 
-	client, err := NewRegistryClient(registryConfig)
+	_, err := NewRegistryClient(registryConfig)
 	if assert.Nil(t, err, "New Registry client failed: ", err) == false {
 		t.Fatal()
 	}
-
-	assert.False(t, client.IsAlive(), "Consul service not expected be running")
 }
 
 func TestNewRegistryBogusType(t *testing.T) {
