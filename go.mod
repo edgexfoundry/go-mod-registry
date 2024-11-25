@@ -3,7 +3,7 @@ module github.com/edgexfoundry/go-mod-registry/v4
 go 1.23
 
 require (
-	github.com/edgexfoundry/go-mod-core-contracts/v4 v4.0.0-dev.2
+	github.com/edgexfoundry/go-mod-core-contracts/v4 v4.0.0-dev.11
 	github.com/stretchr/testify v1.9.0
 )
 
@@ -13,7 +13,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.22.1 // indirect
+	github.com/go-playground/validator/v10 v10.23.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
