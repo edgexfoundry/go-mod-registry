@@ -3,6 +3,40 @@
 ## Registry Module (in Go)
 [Github repository](https://github.com/edgexfoundry/go-mod-registry)
 
+
+## [v4.0.0] - 2025-03-12
+### ✨ Features
+
+- Remove consul dependency ([8c20e08…](https://github.com/edgexfoundry/go-mod-registry/commit/8c20e088c5777c0639aa46125c70e2781a672c84))
+```text
+
+BREAKING CHANGE: Remove consul dependency
+
+```
+- Add Core Keeper registry client ([d2ed7e7…](https://github.com/edgexfoundry/go-mod-registry/commit/d2ed7e792f9cae09deddb7cc4f155098de030ee2))
+```text
+
+BREAKING CHANGE: Introduced Core Keeper as a new service for configuration and registry management
+
+```
+### ♻ Code Refactoring
+
+- Update go module to v4 ([f858874…](https://github.com/edgexfoundry/go-mod-registry/commit/f85887483c2d8c593972c9098c95016830bfb7e3))
+```text
+
+BREAKING CHANGE: Update go module to v4
+
+```
+
+### 📖 Documentation
+
+- Removed outdated installation instructions to trigger a new tag ([9d0c9bf…](https://github.com/edgexfoundry/go-mod-registry/commit/9d0c9bf73e160c4b1efa4c4e1efe5bb125249e55))
+
+### 👷 Build
+
+- Upgrade to go-1.23, Linter1.61.0 ([e5e47b3…](https://github.com/edgexfoundry/go-mod-registry/commit/e5e47b323af70f60e0679cfd866cafc9b01d70dd))
+
+
 ## [v3.1.0] - 2023-11-15
 
 
