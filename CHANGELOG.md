@@ -30,7 +30,7 @@ BREAKING CHANGE: Update go module to v4
 
 ### 📖 Documentation
 
-- Removed outdated installation instructions to trigger a new tag ([9d0c9bf…](https://github.com/edgexfoundry/go-mod-registry/commit/9d0c9bf73e160c4b1efa4c4e1efe5bb125249e55))
+- Removed outdated installation instructions for using the module ([9d0c9bf…](https://github.com/edgexfoundry/go-mod-registry/commit/9d0c9bf73e160c4b1efa4c4e1efe5bb125249e55))
 
 ### 👷 Build
 
