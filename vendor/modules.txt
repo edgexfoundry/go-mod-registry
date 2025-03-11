@@ -1,7 +1,7 @@
 # github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/edgexfoundry/go-mod-core-contracts/v4 v4.0.0
+# github.com/edgexfoundry/go-mod-core-contracts/v4 v4.0.1
 ## explicit; go 1.23
 github.com/edgexfoundry/go-mod-core-contracts/v4/clients
 github.com/edgexfoundry/go-mod-core-contracts/v4/clients/http
