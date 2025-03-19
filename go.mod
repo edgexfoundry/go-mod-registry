@@ -1,6 +1,6 @@
 module github.com/edgexfoundry/go-mod-registry/v4
 
-go 1.23
+go 1.23.0
 
 require (
 	github.com/edgexfoundry/go-mod-core-contracts/v4 v4.0.1
