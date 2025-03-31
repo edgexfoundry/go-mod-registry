@@ -2,8 +2,10 @@ module github.com/edgexfoundry/go-mod-registry/v4
 
 go 1.23.0
 
+toolchain go1.24.1
+
 require (
-	github.com/edgexfoundry/go-mod-core-contracts/v4 v4.1.0-dev.1
+	github.com/edgexfoundry/go-mod-core-contracts/v4 v4.1.0-dev.2
 	github.com/stretchr/testify v1.10.0
 )
 
