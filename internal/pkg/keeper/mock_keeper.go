@@ -104,7 +104,7 @@ func (mock *MockKeeper) Start() *httptest.Server {
 							Message:     "",
 							StatusCode:  200,
 						},
-						TotalCount: uint32(len(mock.serviceStore)),
+						TotalCount: int64(len(mock.serviceStore)),
 					},
 					Registrations: registrations,
 				}

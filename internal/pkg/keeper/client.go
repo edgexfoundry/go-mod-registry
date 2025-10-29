@@ -201,7 +201,7 @@ func (k *keeperClient) IsServiceAvailable(serviceKey string) (bool, error) {
 			return false, fmt.Errorf(" %s service has been unregistered", serviceKey)
 		}
 		if !strings.EqualFold(resp.Registration.Status, "up") {
-			return false, fmt.Errorf(" %s service not healthy...", serviceKey)
+			return false, fmt.Errorf(" %s service not healthy", serviceKey)
 		}
 
 		return true, nil
