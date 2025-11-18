@@ -28,6 +28,7 @@ type keeperClient struct {
 	serviceKey          string
 	serviceHost         string
 	servicePort         int
+	serviceProtocol     string
 	healthCheckRoute    string
 	healthCheckInterval string
 
@@ -47,8 +48,13 @@ func NewKeeperClient(registryConfig types.Config) (*keeperClient, error) {
 	if registryConfig.ServiceHost != "" {
 		client.servicePort = registryConfig.ServicePort
 		client.serviceHost = registryConfig.ServiceHost
+		client.serviceProtocol = registryConfig.ServiceProtocol
 		client.healthCheckRoute = registryConfig.CheckRoute
 		client.healthCheckInterval = registryConfig.CheckInterval
+	}
+
+	if client.serviceProtocol == "" {
+		client.serviceProtocol = "http"
 	}
 
 	// Create the common and registry http clients for invoking APIs from Keeper
@@ -84,7 +90,7 @@ func (k *keeperClient) Register() error {
 			HealthCheck: dtos.HealthCheck{
 				Interval: k.healthCheckInterval,
 				Path:     k.healthCheckRoute,
-				Type:     "http",
+				Type:     k.serviceProtocol,
 			},
 		},
 	}
@@ -136,7 +142,7 @@ func (k *keeperClient) Unregister() error {
 			HealthCheck: dtos.HealthCheck{
 				Interval: k.healthCheckInterval,
 				Path:     k.healthCheckRoute,
-				Type:     "http",
+				Type:     k.serviceProtocol,
 			},
 			Status: models.Halt,
 		},
