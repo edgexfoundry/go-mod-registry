@@ -3,6 +3,17 @@
 ## Registry Module (in Go)
 [Github repository](https://github.com/edgexfoundry/go-mod-registry)
 
+## [v4.0.2] - 2026-05-31
+
+### ✨ Features 
+- Update to use `ServiceProtocol` as health check type ([#ed6e5be](https://github.com/edgexfoundry/go-mod-registry/commits/ed6e5be))
+
+### ♻ Code Refactoring 
+- Update count type to int64 ([#208](https://github.com/edgexfoundry/go-mod-registry/issues/208)) ([#938428f](https://github.com/edgexfoundry/go-mod-registry/commits/938428f))
+
+### 👷 Build 
+- Update goVersion to 1.25 and golangci-lint to 2.5.0 ([#209](https://github.com/edgexfoundry/go-mod-registry/issues/209)) ([#5af0325](https://github.com/edgexfoundry/go-mod-registry/commits/5af0325))
+
 
 ## [v4.0.0] - 2025-03-12
 ### ✨ Features
